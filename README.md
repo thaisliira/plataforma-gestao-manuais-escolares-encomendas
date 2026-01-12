@@ -30,7 +30,7 @@ Criar uma plataforma que permita:
 
 - **Backend:** Laravel
 - **Frontend:** Blade + Bootstrap
-- **Base de Dados:** MySQL / MariaDB (a definir conforme ambiente)
+- **Base de Dados:** Em análise
 - **Gestão de Projeto:** Jira
 - **Controlo de Versões:** Git + GitHub
 
