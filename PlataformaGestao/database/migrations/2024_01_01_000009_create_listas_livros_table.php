@@ -13,11 +13,12 @@ return new class extends Migration
     {
         Schema::create('listas_livros', function (Blueprint $table) {
             $table->id();
-            $table->unsignedBigInteger('escola_id');
-            $table->unsignedBigInteger('ano_letivo_id');
-            $table->unsignedBigInteger('ano_escolar_id');
+            $table->unsignedBigInteger('escola_id')->nullable();
+            $table->unsignedBigInteger('ano_letivo_id')->nullable();
+            $table->unsignedBigInteger('ano_escolar_id')->nullable();
             $table->timestamp('created_at');
             $table->timestamp('updated_at');
+            $table->softDeletes();
 
             // Note: Original index includes 'papelaria_id' which doesn't exist.
             // Implementing with existing columns only:
@@ -26,19 +27,19 @@ return new class extends Migration
             $table->foreign('escola_id')
                 ->references('id')
                 ->on('escolas')
-                ->onDelete('no action')
+                ->onDelete('set null')
                 ->onUpdate('no action');
 
             $table->foreign('ano_letivo_id')
                 ->references('id')
                 ->on('anos_letivos')
-                ->onDelete('no action')
+                ->onDelete('set null')
                 ->onUpdate('no action');
 
             $table->foreign('ano_escolar_id')
                 ->references('id')
                 ->on('anos_escolares')
-                ->onDelete('no action')
+                ->onDelete('set null')
                 ->onUpdate('no action');
         });
     }

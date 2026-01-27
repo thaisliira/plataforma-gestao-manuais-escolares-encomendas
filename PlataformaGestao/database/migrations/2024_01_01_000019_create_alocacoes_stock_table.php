@@ -13,28 +13,30 @@ return new class extends Migration
     {
         Schema::create('alocacoes_stock', function (Blueprint $table) {
             $table->id();
-            $table->unsignedBigInteger('livro_id');
-            $table->unsignedBigInteger('rececao_editora_item_id');
-            $table->unsignedBigInteger('encomenda_aluno_item_id');
+            $table->unsignedBigInteger('livro_id')->nullable();
+            $table->unsignedBigInteger('rececao_editora_item_id')->nullable();
+            $table->unsignedBigInteger('encomenda_aluno_item_id')->nullable();
             $table->integer('quantidade_alocada');
             $table->timestamp('created_at');
+            $table->timestamp('updated_at');
+            $table->softDeletes();
 
             $table->foreign('livro_id')
                 ->references('id')
                 ->on('livros')
-                ->onDelete('no action')
+                ->onDelete('set null')
                 ->onUpdate('no action');
 
             $table->foreign('rececao_editora_item_id')
                 ->references('id')
                 ->on('rececao_livro_itens')
-                ->onDelete('no action')
+                ->onDelete('set null')
                 ->onUpdate('no action');
 
             $table->foreign('encomenda_aluno_item_id')
                 ->references('id')
                 ->on('encomenda_livro_aluno_itens')
-                ->onDelete('no action')
+                ->onDelete('set null')
                 ->onUpdate('no action');
         });
     }

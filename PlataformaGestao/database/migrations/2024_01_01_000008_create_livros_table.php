@@ -17,9 +17,9 @@ return new class extends Migration
     {
         Schema::create('livros', function (Blueprint $table) {
             $table->id();
-            $table->unsignedBigInteger('editora_id');
-            $table->unsignedBigInteger('disciplina_id');
-            $table->unsignedBigInteger('ano_escolar_id');
+            $table->unsignedBigInteger('editora_id')->nullable();
+            $table->unsignedBigInteger('disciplina_id')->nullable();
+            $table->unsignedBigInteger('ano_escolar_id')->nullable();
             $table->enum('tipo', ['MANUAL', 'CADERNO_ATIVIDADES']);
             $table->string('titulo');
             $table->string('isbn')->nullable();
@@ -27,6 +27,7 @@ return new class extends Migration
             $table->boolean('ativo')->default(true);
             $table->timestamp('created_at');
             $table->timestamp('updated_at');
+            $table->softDeletes();
 
             // Note: Original schema has index on 'papelaria_id' which doesn't exist as a column.
             // Implementing only valid indexes:
@@ -37,19 +38,19 @@ return new class extends Migration
             $table->foreign('editora_id')
                 ->references('id')
                 ->on('editoras')
-                ->onDelete('no action')
+                ->onDelete('set null')
                 ->onUpdate('no action');
 
             $table->foreign('disciplina_id')
                 ->references('id')
                 ->on('disciplinas')
-                ->onDelete('no action')
+                ->onDelete('set null')
                 ->onUpdate('no action');
 
             $table->foreign('ano_escolar_id')
                 ->references('id')
                 ->on('anos_escolares')
-                ->onDelete('no action')
+                ->onDelete('set null')
                 ->onUpdate('no action');
         });
     }

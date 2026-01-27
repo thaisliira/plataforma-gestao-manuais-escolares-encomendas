@@ -18,6 +18,7 @@ return new class extends Migration
             $table->string('password');
             $table->timestamp('created_at');
             $table->timestamp('updated_at');
+            $table->softDeletes();
 
             // Note: Original schema has indexes on 'papelaria_id' which doesn't exist as a column.
             // Implementing only valid indexes:

@@ -18,15 +18,17 @@ return new class extends Migration
     {
         Schema::create('encomendas_editora', function (Blueprint $table) {
             $table->id();
-            $table->unsignedBigInteger('editora_id');
+            $table->unsignedBigInteger('editora_id')->nullable();
             $table->enum('status', ['SOLICITADO', 'ENTREGA_PARCIAL', 'ENTREGA_COMPLETA']);
             $table->dateTime('data_solicitada')->nullable();
+            $table->timestamp('created_at');
             $table->timestamp('updated_at');
+            $table->softDeletes();
 
             $table->foreign('editora_id')
                 ->references('id')
                 ->on('editoras')
-                ->onDelete('no action')
+                ->onDelete('set null')
                 ->onUpdate('no action');
         });
     }

@@ -17,26 +17,28 @@ return new class extends Migration
     {
         Schema::create('encomenda_livro_aluno_itens', function (Blueprint $table) {
             $table->id();
-            $table->unsignedBigInteger('encomenda_aluno_id');
-            $table->unsignedBigInteger('livro_id');
+            $table->unsignedBigInteger('encomenda_aluno_id')->nullable();
+            $table->unsignedBigInteger('livro_id')->nullable();
             $table->tinyInteger('quantidade');
             $table->boolean('encapar')->default(false);
             $table->boolean('encapado')->default(false);
             $table->tinyInteger('quantidade_entregue');
             $table->boolean('entregue')->default(false);
             $table->boolean('ensacado')->default(false);
+            $table->timestamp('created_at');
             $table->timestamp('updated_at');
+            $table->softDeletes();
 
             $table->foreign('encomenda_aluno_id')
                 ->references('id')
                 ->on('encomendas_aluno')
-                ->onDelete('no action')
+                ->onDelete('set null')
                 ->onUpdate('no action');
 
             $table->foreign('livro_id')
                 ->references('id')
                 ->on('livros')
-                ->onDelete('no action')
+                ->onDelete('set null')
                 ->onUpdate('no action');
         });
     }
