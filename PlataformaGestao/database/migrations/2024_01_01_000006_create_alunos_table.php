@@ -21,6 +21,7 @@ return new class extends Migration
             $table->string('numero_cliente')->nullable();
             $table->timestamp('created_at');
             $table->timestamp('updated_at');
+            $table->softDeletes();
 
             $table->unique('nif', 'alunos_index_0');
             $table->unique('id_mega', 'alunos_index_1');

@@ -16,6 +16,8 @@ return new class extends Migration
             $table->string('nome'); // ex: 2025/2026
             $table->date('data_inicio');
             $table->date('data_fim');
+            $table->timestamps();
+            $table->softDeletes();
         });
     }
 

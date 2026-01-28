@@ -13,35 +13,36 @@ return new class extends Migration
     {
         Schema::create('lista_livro_itens', function (Blueprint $table) {
             $table->id();
-            $table->unsignedBigInteger('lista_id');
-            $table->unsignedBigInteger('disciplina_id');
-            $table->unsignedBigInteger('manual_livro_id');
+            $table->unsignedBigInteger('lista_id')->nullable();
+            $table->unsignedBigInteger('disciplina_id')->nullable();
+            $table->unsignedBigInteger('manual_livro_id')->nullable();
             $table->unsignedBigInteger('caderno_livro_id')->nullable();
             $table->timestamp('created_at');
             $table->timestamp('updated_at');
+            $table->softDeletes();
 
             $table->foreign('lista_id')
                 ->references('id')
                 ->on('listas_livros')
-                ->onDelete('no action')
+                ->onDelete('set null')
                 ->onUpdate('no action');
 
             $table->foreign('disciplina_id')
                 ->references('id')
                 ->on('disciplinas')
-                ->onDelete('no action')
+                ->onDelete('set null')
                 ->onUpdate('no action');
 
             $table->foreign('manual_livro_id')
                 ->references('id')
                 ->on('livros')
-                ->onDelete('no action')
+                ->onDelete('set null')
                 ->onUpdate('no action');
 
             $table->foreign('caderno_livro_id')
                 ->references('id')
                 ->on('livros')
-                ->onDelete('no action')
+                ->onDelete('set null')
                 ->onUpdate('no action');
         });
     }
