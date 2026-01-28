@@ -17,6 +17,8 @@ return new class extends Migration
             $table->string('codigo');
             $table->string('contacto_email')->nullable();
             $table->string('contacto_telefone')->nullable();
+            $table->timestamps();
+            $table->softDeletes();
         });
     }
 

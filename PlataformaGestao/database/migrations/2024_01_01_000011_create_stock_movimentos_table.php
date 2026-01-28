@@ -13,14 +13,19 @@ return new class extends Migration
     {
         Schema::create('stock_movimentos', function (Blueprint $table) {
             $table->id();
-            $table->unsignedBigInteger('livro_id');
+            $table->unsignedBigInteger('livro_id')->nullable();
             $table->tinyInteger('tipo');
             $table->integer('quantidade');
             $table->string('observacao')->nullable();
             $table->timestamp('created_at');
             $table->timestamp('updated_at');
+            $table->softDeletes();
 
-            // Note: No foreign key defined in original schema for livro_id
+            $table->foreign('livro_id')
+                ->references('id')
+                ->on('livros')
+                ->onDelete('set null')
+                ->onUpdate('no action');
         });
     }
 

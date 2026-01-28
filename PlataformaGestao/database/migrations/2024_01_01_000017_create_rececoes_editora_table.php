@@ -13,13 +13,15 @@ return new class extends Migration
     {
         Schema::create('rececoes_editora', function (Blueprint $table) {
             $table->id();
-            $table->unsignedBigInteger('encomenda_editora_id');
+            $table->unsignedBigInteger('encomenda_editora_id')->nullable();
             $table->dateTime('data_rececao');
+            $table->timestamps();
+            $table->softDeletes();
 
             $table->foreign('encomenda_editora_id')
                 ->references('id')
                 ->on('encomendas_editora')
-                ->onDelete('no action')
+                ->onDelete('set null')
                 ->onUpdate('no action');
         });
     }

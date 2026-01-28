@@ -13,15 +13,17 @@ return new class extends Migration
     {
         Schema::create('escolas', function (Blueprint $table) {
             $table->id();
-            $table->unsignedBigInteger('concelho_id');
+            $table->unsignedBigInteger('concelho_id')->nullable();
             $table->string('nome');
             $table->string('codigo');
             $table->boolean('isAtivo');
+            $table->timestamps();
+            $table->softDeletes();
 
             $table->foreign('concelho_id')
                 ->references('id')
                 ->on('concelhos')
-                ->onDelete('no action')
+                ->onDelete('set null')
                 ->onUpdate('no action');
         });
     }

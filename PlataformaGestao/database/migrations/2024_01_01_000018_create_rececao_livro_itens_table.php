@@ -13,27 +13,29 @@ return new class extends Migration
     {
         Schema::create('rececao_livro_itens', function (Blueprint $table) {
             $table->id();
-            $table->unsignedBigInteger('rececao_editora_id');
-            $table->unsignedBigInteger('encomenda_editora_item_id');
-            $table->unsignedBigInteger('livro_id');
+            $table->unsignedBigInteger('rececao_editora_id')->nullable();
+            $table->unsignedBigInteger('encomenda_editora_item_id')->nullable();
+            $table->unsignedBigInteger('livro_id')->nullable();
             $table->bigInteger('qtd_recebida');
+            $table->timestamps();
+            $table->softDeletes();
 
             $table->foreign('rececao_editora_id')
                 ->references('id')
                 ->on('rececoes_editora')
-                ->onDelete('no action')
+                ->onDelete('set null')
                 ->onUpdate('no action');
 
             $table->foreign('encomenda_editora_item_id')
                 ->references('id')
                 ->on('encomenda_livro_editora_itens')
-                ->onDelete('no action')
+                ->onDelete('set null')
                 ->onUpdate('no action');
 
             $table->foreign('livro_id')
                 ->references('id')
                 ->on('livros')
-                ->onDelete('no action')
+                ->onDelete('set null')
                 ->onUpdate('no action');
         });
     }

@@ -13,16 +13,18 @@ return new class extends Migration
     {
         Schema::create('stocks', function (Blueprint $table) {
             $table->id();
-            $table->unsignedBigInteger('livro_id');
+            $table->unsignedBigInteger('livro_id')->nullable();
             $table->bigInteger('quantidade');
+            $table->timestamp('created_at');
             $table->timestamp('updated_at');
+            $table->softDeletes();
 
             $table->unique('livro_id', 'stocks_index_0');
 
             $table->foreign('livro_id')
                 ->references('id')
                 ->on('livros')
-                ->onDelete('no action')
+                ->onDelete('set null')
                 ->onUpdate('no action');
         });
     }
