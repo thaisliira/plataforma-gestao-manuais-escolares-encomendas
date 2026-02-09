@@ -2,11 +2,14 @@
 
 namespace App\Http\Controllers;
 use App\Models\Livro;
+use App\Models\Stock;
+use App\Models\StockMovimento;
 use App\Models\Disciplina;
 use App\Models\Editora;
 use App\Models\AnoEscolar;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 
 class StockController extends Controller
@@ -101,5 +104,49 @@ class StockController extends Controller
             'editoras' => $editoras,
             'anosEscolares' => $anosEscolares,
         ]);
+    }
+
+    public function adjust(Request $request)
+    {
+        $request->validate([
+            'livro_id' => 'required|exists:livros,id',
+            'operacao' => 'required|in:ADICIONAR,REMOVER',
+            'quantidade' => 'required|integer|min:1',
+
+        ]);
+
+        $livroId = $request->livro_id;
+        $operacao = $request->operacao;
+        $quantidade = $request->quantidade;
+
+        $stock = Stock::firstOrNew(
+            ['livro_id' => $livroId],
+            ['quantidade' => 0]
+        );
+
+        if ($operacao === 'REMOVER' && $stock->quantidade < $quantidade) {
+            throw ValidationException::withMessages([
+                'quantidade' => 'Stock insuficiente. Stock atual: ' . $stock->quantidade,
+            ]);
+        }
+
+        DB::transaction(function () use ($stock, $operacao, $quantidade, $livroId, $request) {
+            if ($operacao === 'REMOVER') {
+                $stock->quantidade -= $quantidade;
+            } else {
+                $stock->quantidade += $quantidade;
+            }
+
+            $stock->save();
+
+            StockMovimento::create([
+                'livro_id' => $livroId,
+                'tipo' => $operacao === 'ADICIONAR' ? 1 : 2,
+                'quantidade' => $quantidade,
+                
+            ]);
+        });
+
+        return back();
     }
 }

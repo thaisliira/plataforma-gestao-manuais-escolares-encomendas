@@ -1,9 +1,11 @@
 import AuthenticatedLayout from "@/Layouts/AuthenticatedLayout";
-import { Head, router } from "@inertiajs/react";
+import { Head, router, useForm } from "@inertiajs/react";
 import { useState } from "react";
 import TextInput from "@/Components/TextInput";
 import PrimaryButton from "@/Components/PrimaryButton";
 import SecondaryButton from "@/Components/SecondaryButton";
+import Modal from "@/Components/Modal";
+import InputError from "@/Components/InputError";
 
 export default function StockIndex({
     items,
@@ -49,6 +51,43 @@ export default function StockIndex({
 
     const handleInputChange = (field, value) => {
         setFormData((prev) => ({ ...prev, [field]: value }));
+    };
+
+    // Adjust modal state
+    const [showAdjustModal, setShowAdjustModal] = useState(false);
+    const [selectedItem, setSelectedItem] = useState(null);
+
+    const adjustForm = useForm({
+        livro_id: "",
+        operacao: "ADICIONAR",
+        quantidade: "",
+      
+    });
+
+    const openAdjustModal = (item) => {
+        setSelectedItem(item);
+        adjustForm.setData({
+            livro_id: item.livro_id,
+            operacao: "ADICIONAR",
+            quantidade: "",
+        });
+        adjustForm.clearErrors();
+        setShowAdjustModal(true);
+    };
+
+    const closeAdjustModal = () => {
+        setShowAdjustModal(false);
+        setSelectedItem(null);
+        adjustForm.reset();
+        adjustForm.clearErrors();
+    };
+
+    const submitAdjust = (e) => {
+        e.preventDefault();
+        adjustForm.post("/stock/adjust", {
+            preserveScroll: true,
+            onSuccess: () => closeAdjustModal(),
+        });
     };
 
     return (
@@ -212,6 +251,17 @@ export default function StockIndex({
                     </form>
                 </div>
 
+                {/* Add book to stock button */}
+                <div>
+                    <button
+                        disabled
+                        className="inline-flex items-center gap-1 rounded-md bg-gray-800 px-4 py-2 text-sm font-semibold text-white opacity-50 cursor-not-allowed"
+                    >
+                        <span className="text-lg leading-none">+</span>
+                        Adicionar Livro ao Stock
+                    </button>
+                </div>
+
                 {/* Table */}
                 <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
                     <div className="overflow-x-auto">
@@ -280,8 +330,10 @@ export default function StockIndex({
                                             </td>
                                             <td className="px-6 py-4 whitespace-nowrap text-sm">
                                                 <button
-                                                    disabled
-                                                    className="text-gray-400 bg-gray-100 px-3 py-1 rounded text-xs font-medium cursor-not-allowed"
+                                                    onClick={() =>
+                                                        openAdjustModal(item)
+                                                    }
+                                                    className="text-white bg-blue-600 hover:bg-blue-700 px-3 py-1 rounded text-xs font-medium transition"
                                                 >
                                                     Ajustar
                                                 </button>
@@ -336,6 +388,97 @@ export default function StockIndex({
                     </div>
                 )}
             </div>
+
+            {/* Adjust Stock Modal */}
+            <Modal
+                show={showAdjustModal}
+                onClose={closeAdjustModal}
+                maxWidth="md"
+            >
+                <form onSubmit={submitAdjust} className="p-6">
+                    <h2 className="text-lg font-semibold text-gray-900 mb-1">
+                        Ajustar Stock
+                    </h2>
+                    {selectedItem && (
+                        <p className="text-sm text-gray-500 mb-4">
+                            {selectedItem.titulo}
+                        </p>
+                    )}
+
+                    <div className="space-y-4">
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                                Operação
+                            </label>
+                            <select
+                                value={adjustForm.data.operacao}
+                                onChange={(e) =>
+                                    adjustForm.setData(
+                                        "operacao",
+                                        e.target.value,
+                                    )
+                                }
+                                className="w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                            >
+                                <option value="ADICIONAR">Adicionar</option>
+                                <option value="REMOVER">Remover</option>
+                            </select>
+                            <InputError
+                                message={adjustForm.errors.operacao}
+                                className="mt-1"
+                            />
+                        </div>
+
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                                Quantidade
+                            </label>
+                            <TextInput
+                                type="number"
+                                min="1"
+                                value={adjustForm.data.quantidade}
+                                onChange={(e) =>
+                                    adjustForm.setData(
+                                        "quantidade",
+                                        e.target.value,
+                                    )
+                                }
+                                className="w-full"
+                                placeholder="Quantidade"
+                            />
+                            <InputError
+                                message={adjustForm.errors.quantidade}
+                                className="mt-1"
+                            />
+                        </div>
+
+                    </div>
+
+                    {adjustForm.errors.livro_id && (
+                        <InputError
+                            message={adjustForm.errors.livro_id}
+                            className="mt-4"
+                        />
+                    )}
+
+                    <div className="flex justify-end gap-2 mt-6">
+                        <SecondaryButton
+                            type="button"
+                            onClick={closeAdjustModal}
+                        >
+                            Cancelar
+                        </SecondaryButton>
+                        <PrimaryButton
+                            type="submit"
+                            disabled={adjustForm.processing}
+                        >
+                            {adjustForm.processing
+                                ? "A guardar..."
+                                : "Confirmar"}
+                        </PrimaryButton>
+                    </div>
+                </form>
+            </Modal>
         </AuthenticatedLayout>
     );
 }

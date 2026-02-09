@@ -25,6 +25,7 @@ Route::get('/encomendas', [OrderController::class, 'index'])->name('orders.index
 
 // Rotas para stock
 Route::get('/stock', [StockController::class, 'index'])->name('stock.index');
+Route::post('/stock/adjust', [StockController::class, 'adjust'])->name('stock.adjust');
 
 
 Route::middleware('auth')->group(function () {
