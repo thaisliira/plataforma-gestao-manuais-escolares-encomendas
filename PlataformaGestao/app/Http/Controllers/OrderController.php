@@ -8,7 +8,7 @@ class OrderController extends Controller
 {
     public function index()
     {
-        // 1. Dados dos Cartões de Topo
+        
         $stats = [
             'pendentes' => 1,
             'processamento' => 0,
