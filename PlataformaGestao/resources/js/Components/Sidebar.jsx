@@ -17,7 +17,7 @@ export default function Sidebar({ user }) {
   const currentPath = normalizePath(url);
 
   const menuItems = [
-    // ---------- PRINCIPAL ----------
+    
     {
       label: "Dashboard",
       href: route("dashboard"),
@@ -26,7 +26,7 @@ export default function Sidebar({ user }) {
       disabled: false,
     },
 
-    // ---------- ENCOMENDAS ----------
+    
     {
       section: "Encomendas",
     },
@@ -45,7 +45,7 @@ export default function Sidebar({ user }) {
       disabled: false,
     },
 
-    // ---------- CATÁLOGO ----------
+    
     {
       section: "Catálogo",
     },
@@ -57,50 +57,43 @@ export default function Sidebar({ user }) {
       disabled: false,
     },
 
-    // ---------- ESCOLAS ----------
+    
     {
       section: "Escolas",
     },
     {
-      label: "Inserção de Escolas",
-      href: "#", // route('escolas.create')
-      active: isActive(currentPath, "/escolas/criar"),
-      icon: <FaSchool className="w-5 h-5" />,
-      disabled: true,
-    },
-    {
       label: "Gerir Escolas",
-      href: "#", // route('escolas.index')
-      active: isActive(currentPath, "/escolas"),
+      href: route('escolas.index'), 
+      active: isActive(currentPath, "/escolas/gerir"),
       icon: <FaSchool className="w-5 h-5" />,
-      disabled: true,
+      disabled: false,
     },
 
-    // ---------- LISTAS DE LIVROS ----------
+    
     {
       section: "Listas",
     },
     {
       label: "Gerir Listas de Livros",
-      href: "#", //route('listas.livros.index')
+      href: "#", 
       active: isActive(currentPath, "/listas"),
       icon: <FaListAlt className="w-5 h-5" />,
       disabled: true,
     },
 
-    // ---------- STOCK ----------
+    
     {
       section: "Stock",
       },
       {
           label: "Stock",
-          href: "#",
+          href: "#", 
           active: isActive(currentPath, "/stock"),
           icon: <FaWarehouse className="w-5 h-5" />,
           disabled: true,
       },
 
-    // ---------- PERFIL ----------
+    
     {
       section: "Conta",
     },
@@ -115,7 +108,7 @@ export default function Sidebar({ user }) {
 
     return (
         <aside className="w-64 bg-white border-r border-gray-200 flex flex-col h-screen fixed left-0 top-0 z-50">
-            {/* 1. LOGO */}
+            
             <div className="h-16 flex items-center justify-center px-6 border-b border-gray-100">
                 <Link href={route("dashboard")} className="flex items-center">
                     <img
@@ -126,7 +119,7 @@ export default function Sidebar({ user }) {
                 </Link>
             </div>
 
-      {/* 2. MENU DE NAVEGAÇÃO */}
+      
       <nav className="flex-1 px-4 py-6 space-y-1 overflow-y-auto">
         {menuItems.map((item, idx) => {
           if (item.section) {
@@ -154,7 +147,7 @@ export default function Sidebar({ user }) {
         })}
       </nav>
 
-      {/* 3. PERFIL DO UTILIZADOR */}
+      
       <div className="border-t border-gray-200 p-4 bg-gray-50">
         <div className="flex items-center w-full">
           <div className="h-9 w-9 rounded-full bg-blue-600 text-white flex items-center justify-center font-semibold text-sm">

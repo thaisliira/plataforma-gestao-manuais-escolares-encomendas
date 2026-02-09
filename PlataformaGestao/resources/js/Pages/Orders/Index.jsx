@@ -192,10 +192,10 @@ export default function OrdersIndex({ auth, orders, stats, filters, filterOption
                     <div className="divide-y divide-gray-100">
                         {orders.data.length > 0 ? (
                             orders.data.map((order) => (
-                                <CompactOrderRow 
-                                    key={order.id} 
-                                    order={order} 
-                                    onClick={() => setSelectedOrder(order)} 
+                                <CompactOrderRow
+                                    key={order.id}
+                                    order={order}
+                                    onClick={() => setSelectedOrder(order)}
                                 />
                             ))
                         ) : (
@@ -205,7 +205,7 @@ export default function OrdersIndex({ auth, orders, stats, filters, filterOption
                             </div>
                         )}
                     </div>
-                    
+
                     {/* Paginação Compacta */}
                     {orders.last_page > 1 && (
                         <div className="px-6 py-3 border-t border-gray-200 bg-gray-50 flex justify-center">
@@ -286,7 +286,7 @@ function CompactOrderRow({ order, onClick }) {
     const currentStatus = statusConfig[order.status.badge] || statusConfig.pendente;
 
     return (
-        <div 
+        <div
             onClick={onClick}
             className={`group grid grid-cols-12 gap-4 px-6 py-4 items-center hover:bg-gray-50 cursor-pointer transition duration-150 ease-in-out border-l-4 ${currentStatus.color}`}
         >
