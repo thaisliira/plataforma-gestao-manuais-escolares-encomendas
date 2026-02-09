@@ -27,10 +27,23 @@ Route::middleware(['auth', 'verified'])->group(function () {
         return Inertia::render('Dashboard');
     })->name('dashboard');
 
-    // ---------- ENCOMENDAS ----------
+    // ---------- ENCOMENDAS (Clientes) ----------
     Route::get('/encomendas/clientes', [OrderController::class, 'index'])
         ->name('orders.clientes.index');
 
+    Route::get('/encomendas', [OrderController::class, 'index'])->name('orders.index');
+    Route::get('/encomendas/create', [OrderController::class, 'create'])->name('orders.create');
+    Route::post('/encomendas', [OrderController::class, 'store'])->name('orders.store');
+
+    // APIs para suporte à criação de encomendas
+    Route::get('/api/students/lookup', [OrderController::class, 'studentLookup'])->name('api.students.lookup');
+    Route::get('/api/books/search', [OrderController::class, 'searchBooks'])->name('api.books.search');
+
+    // APIs para processamento de encomendas
+    Route::patch('/api/orders/{orderId}/items/{itemId}', [OrderController::class, 'updateItem'])->name('api.orders.updateItem');
+    Route::get('/api/orders/{orderId}/history', [OrderController::class, 'getHistory'])->name('api.orders.history');
+
+    // ---------- ENCOMENDAS (Editora) ----------
     Route::get('/encomendas/editora', [EncomendasEditoraController::class, 'index'])
         ->name('orders.editora.index');
 
@@ -50,26 +63,13 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::put('/catalogo/livros/{livro}', [CatalogoLivrosController::class, 'update'])
         ->name('catalogo.livros.update');
 
-// Rotas para encomendas
-Route::get('/encomendas', [OrderController::class, 'index'])->name('orders.index');
-Route::get('/encomendas/create', [OrderController::class, 'create'])->name('orders.create');
-Route::post('/encomendas', [OrderController::class, 'store'])->name('orders.store');
-
-// APIs para suporte à criação de encomendas
-Route::get('/api/students/lookup', [OrderController::class, 'studentLookup'])->name('api.students.lookup');
-Route::get('/api/books/search', [OrderController::class, 'searchBooks'])->name('api.books.search');
-
-// APIs para processamento de encomendas
-Route::patch('/api/orders/{orderId}/items/{itemId}', [OrderController::class, 'updateItem'])->name('api.orders.updateItem');
-Route::get('/api/orders/{orderId}/history', [OrderController::class, 'getHistory'])->name('api.orders.history');
-
     Route::patch('/catalogo/livros/{livro}/toggle', [CatalogoLivrosController::class, 'toggleActive'])
         ->name('catalogo.livros.toggle');
 
     Route::delete('/catalogo/livros/{livro}', [CatalogoLivrosController::class, 'destroy'])
         ->name('catalogo.livros.destroy');
 
-    // ---------- ESCOLAS  ----------
+    // ---------- ESCOLAS ----------
     Route::get('/escolas', [EscolasController::class, 'index'])
         ->name('escolas.index');
 
@@ -85,7 +85,6 @@ Route::get('/api/orders/{orderId}/history', [OrderController::class, 'getHistory
     Route::delete('/escolas/{escola}', [EscolasController::class, 'destroy'])
         ->name('escolas.destroy');
 
-
     // ---------- ALUNOS ----------
     Route::get('/alunos/criar', [AlunosController::class, 'create'])
         ->name('alunos.create');
@@ -95,12 +94,10 @@ Route::get('/api/orders/{orderId}/history', [OrderController::class, 'getHistory
 });
 
 Route::middleware('auth')->group(function () {
+    // Perfil
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
-    Route::get('/encomendas/clientes', [OrderController::class, 'index'])->name('orders.clientes.index');
-    Route::get('/encomendas/editora', [OrderController::class, 'index'])->name('orders.editora.index');
-    Route::get('/catalogo/livros', [OrderController::class, 'index'])->name('catalogo.livros.index');
 });
 
-require __DIR__.'/auth.php';
+require __DIR__ . '/auth.php';
