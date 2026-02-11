@@ -38,15 +38,21 @@ class LivroController extends Controller
         ] : null,
     ]);
 
+        // Buscar o ano letivo vigente (atual)
+        $anoLetivoVigente = AnoLetivo::whereDate('data_inicio', '<=', now())
+            ->whereDate('data_fim', '>=', now())
+            ->first();
+
         // Renderizar a página com os dados iniciais dos filtros
         return Inertia::render('Books/Index', [
-            'concelhos'      => Concelho::all(['id', 'nome']),
-            'escolas'        => Escola::all(['id', 'nome', 'concelho_id']),
-            'anos_letivos'   => AnoLetivo::all(['id', 'nome']),
-            'anos_escolares' => AnoEscolar::select('id', 'name as nome')->get(),
-            'disciplinas'    => Disciplina::orderBy('nome')->get(['id', 'nome']),
-            'catalog'        => $catalog,
-            'filters'        => $request->only(['concelho', 'escola_id', 'ano_letivo_id', 'ano_escolar_id'])
+            'concelhos'         => Concelho::all(['id', 'nome']),
+            'escolas'           => Escola::all(['id', 'nome', 'concelho_id']),
+            'anos_letivos'      => AnoLetivo::all(['id', 'nome']),
+            'anos_escolares'    => AnoEscolar::select('id', 'name as nome')->get(),
+            'disciplinas'       => Disciplina::orderBy('nome')->get(['id', 'nome']),
+            'ano_letivo_vigente_id' => $anoLetivoVigente?->id,
+            'catalog'           => $catalog,
+            'filters'           => $request->only(['concelho', 'escola_id', 'ano_letivo_id', 'ano_escolar_id'])
         ]);
     }
 

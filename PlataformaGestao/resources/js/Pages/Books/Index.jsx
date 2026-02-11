@@ -7,7 +7,7 @@ import axios from 'axios';
 import BookCard from '@/Components/BookCard';
 import FilterSection from '@/Components/FilterSection';
 
-export default function BooksLists({ auth, catalog = [], concelhos = [], escolas = [], anos_letivos = [], anos_escolares = [], disciplinas = [] }) {
+export default function BooksLists({ auth, catalog = [], concelhos = [], escolas = [], anos_letivos = [], anos_escolares = [], disciplinas = [], ano_letivo_vigente_id = null }) {
     const [currentList, setCurrentList] = useState([]);
     const [searchTerm, setSearchTerm] = useState("");
     
@@ -29,7 +29,14 @@ export default function BooksLists({ auth, catalog = [], concelhos = [], escolas
         return disciplinas || [];
     }, [disciplinas]);
 
-    // 3. Lógica de Filtragem Combinada (Pesquisa + Disciplina)
+    // 3. Definir ano letivo vigente como padrão ao carregar
+    useEffect(() => {
+        if (ano_letivo_vigente_id && !data.ano_letivo_id) {
+            setData('ano_letivo_id', ano_letivo_vigente_id);
+        }
+    }, [ano_letivo_vigente_id]);
+
+    // 4. Lógica de Filtragem Combinada (Pesquisa + Disciplina)
     const filteredCatalog = catalog.filter(book => {
         if (!book || !book.id) return false;
 
@@ -80,6 +87,7 @@ export default function BooksLists({ auth, catalog = [], concelhos = [], escolas
 
             const itensParaAdicionar = [item];
 
+            // Se arrastar MANUAL, buscar o CADERNO_ATIVIDADES correspondente
             if (item.tipo === 'MANUAL' && item.disciplina_id) {
                 const caderno = catalog.find(livro =>
                     livro.tipo === 'CADERNO_ATIVIDADES' &&
@@ -87,6 +95,16 @@ export default function BooksLists({ auth, catalog = [], concelhos = [], escolas
                     livro.ano_escolar_id === item.ano_escolar_id
                 );
                 if (caderno) itensParaAdicionar.push(caderno);
+            }
+
+            // Se arrastar CADERNO_ATIVIDADES, buscar o MANUAL correspondente
+            if (item.tipo === 'CADERNO_ATIVIDADES' && item.disciplina_id) {
+                const manual = catalog.find(livro =>
+                    livro.tipo === 'MANUAL' &&
+                    livro.disciplina_id === item.disciplina_id &&
+                    livro.ano_escolar_id === item.ano_escolar_id
+                );
+                if (manual) itensParaAdicionar.push(manual);
             }
 
             setCurrentList(prev => {
