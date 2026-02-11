@@ -4,7 +4,6 @@ import { useState, useMemo, useEffect } from 'react';
 import { DragDropContext, Droppable } from '@hello-pangea/dnd';
 import { FaSearch } from "react-icons/fa";
 import axios from 'axios';
-
 import BookCard from '@/Components/BookCard';
 import FilterSection from '@/Components/FilterSection';
 
@@ -24,19 +23,22 @@ export default function BooksLists({ auth, catalog = [], concelhos = [], escolas
     if (data.escola_id && data.ano_letivo_id && data.ano_escolar_id) {
         setCurrentList([]); 
         
-        axios.get(route('api.lista.books'), { 
-            params: { 
+        axios.get(route('api.lista.books'), {
+            params: {
                 escola_id: data.escola_id,
                 ano_letivo_id: data.ano_letivo_id,
-                ano_escolar_id: data.ano_escolar_id 
-            } 
+                ano_escolar_id: data.ano_escolar_id
+            }
         })
         .then(res => {
-            const novaLista = Array.isArray(res.data) ? res.data : [];
+            console.log("📚 Resposta da API:", res.data);
+            const novaLista = Array.isArray(res.data) ? res.data.filter(item => item && item.id) : [];
+            console.log("📋 Lista processada:", novaLista);
             setCurrentList(novaLista);
         })
         .catch(err => {
-            console.error("Erro:", err);
+            console.error("❌ Erro ao buscar lista:", err);
+            console.error("❌ Detalhes:", err.response?.data);
             setCurrentList([]);
         });
     } else {
@@ -59,7 +61,7 @@ export default function BooksLists({ auth, catalog = [], concelhos = [], escolas
 
     if (source.droppableId === 'catalog' && destination.droppableId === 'currentList') {
         const item = filteredCatalog[source.index];
-        if (!currentList.find(i => i.id === item.id)) {
+        if (item && item.id && !currentList.find(i => i.id === item.id)) {
             setCurrentList(prev => [...prev, item]);
         }
     }
@@ -109,20 +111,15 @@ export default function BooksLists({ auth, catalog = [], concelhos = [], escolas
             >
                
                 {currentList && currentList.length > 0 ? (
-                    currentList.map((item, index) => {
-                       
-                        if (!item || !item.id) return null;
-                        
-                        return (
-                            <BookCard 
-                                key={`list-item-${item.id}-${index}`}
-                                item={item} 
-                                index={index} 
-                                isRemovable 
-                                onRemove={() => setCurrentList(prev => prev.filter((_, i) => i !== index))} 
-                            />
-                        );
-                    })
+                    currentList.map((item, index) => (
+                        <BookCard
+                            key={`list-item-${item.id}`}
+                            item={item}
+                            index={index}
+                            isRemovable
+                            onRemove={() => setCurrentList(prev => prev.filter((_, i) => i !== index))}
+                        />
+                    ))
                 ) : (
                     <div className="flex flex-col items-center justify-center h-64 text-gray-400">
                         <p className="text-sm italic">Arraste livros do catálogo para aqui</p>
