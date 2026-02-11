@@ -10,6 +10,7 @@ use App\Models\Concelho;
 use App\Models\AnoLetivo;
 use App\Models\AnoEscolar;
 use App\Models\ListaLivro;
+use App\Models\Disciplina;
 use Illuminate\Http\Request;
 
 class LivroController extends Controller
@@ -31,14 +32,19 @@ class LivroController extends Controller
         'tipo' => $livro->tipo,
         'disciplina_id' => $livro->disciplina_id,
         'ano_escolar_id' => $livro->ano_escolar_id,
+        'disciplina' => $livro->disciplina ? [
+            'id' => $livro->disciplina->id,
+            'nome' => $livro->disciplina->nome,
+        ] : null,
     ]);
 
         // Renderizar a página com os dados iniciais dos filtros
         return Inertia::render('Books/Index', [
             'concelhos'      => Concelho::all(['id', 'nome']),
-            'escolas'        => Escola::all(['id', 'nome', 'concelho_id']), 
+            'escolas'        => Escola::all(['id', 'nome', 'concelho_id']),
             'anos_letivos'   => AnoLetivo::all(['id', 'nome']),
             'anos_escolares' => AnoEscolar::select('id', 'name as nome')->get(),
+            'disciplinas'    => Disciplina::orderBy('nome')->get(['id', 'nome']),
             'catalog'        => $catalog,
             'filters'        => $request->only(['concelho', 'escola_id', 'ano_letivo_id', 'ano_escolar_id'])
         ]);
