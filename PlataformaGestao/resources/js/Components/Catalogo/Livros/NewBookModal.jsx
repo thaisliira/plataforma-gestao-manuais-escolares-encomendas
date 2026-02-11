@@ -165,7 +165,7 @@ export default function NewBookModal({ open, onClose, filters }) {
               <option key={ed.id} value={ed.id}>
                 {ed.nome}
               </option>
-            ))}
+            ))} 
           </select>
           {form.errors.editora_id && (
             <p className="text-xs text-red-600 mt-1">
