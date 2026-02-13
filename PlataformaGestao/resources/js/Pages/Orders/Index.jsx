@@ -116,7 +116,7 @@ export default function OrdersIndex({ auth, orders, stats, filters, filterOption
 
                             {/* Botão Nova Encomenda (Gradiente) */}
                             <a href="/encomendas/clientes/create" 
-                               className="px-5 py-2.5 bg-gradient-to-b from-indigo-500 to-indigo-600 hover:from-indigo-600 hover:to-indigo-700 text-white text-sm font-bold rounded-2xl shadow-lg shadow-black-500/25 hover:shadow-xl hover:shadow-black-100/10 transition-all duration-200 active:scale-[0.97] flex items-center gap-2 whitespace-nowrap"
+                               className="px-5 py-2.5 bg-gradient-to-b from-indigo-500 to-indigo-600 hover:from-indigo-600 hover:to-indigo-700 text-white text-sm font-bold rounded-2xl shadow-lg shadow-indigo-500/25 hover:shadow-xl hover:shadow-indigo-500/30 transition-all duration-200 active:scale-[0.97] flex items-center gap-2 whitespace-nowrap"
                             >
                                 <FaPlus className="text-xs" />
                                 <span className="hidden sm:inline">Nova Encomenda</span>
