@@ -202,20 +202,20 @@ export default function CreateOrder({ auth, schools, concelhos, anos_escolares }
                     </div>
 
                     {/* GRID */}
-                    <form onSubmit={handleSubmit} className="flex-1 grid grid-cols-1 lg:grid-cols-12 gap-4 min-h-0">
+                    <form onSubmit={handleSubmit} className="flex-1 grid grid-cols-1 lg:grid-cols-12 gap-6 min-h-0">
 
                         {/* LEFT COLUMN */}
-                        <div className="lg:col-span-5 space-y-2.5">
+                        <div className="lg:col-span-5 space-y-4">
 
-                            {/* Card: Selecionar Escola */}
-                            <div className="card-3d overflow-hidden animate-card-in">
-                                <div className="px-4 py-2.5 flex items-center gap-2 border-b border-gray-100">
+                            {/* Card: Selecionar Escola (UPDATED: rounded-[2.5rem]) */}
+                            <div className="card-3d overflow-hidden animate-card-in rounded-3xl">
+                                <div className="px-6 py-3 flex items-center gap-2 border-b border-gray-100">
                                     <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-indigo-500 to-indigo-600 flex items-center justify-center shadow-sm shadow-indigo-500/25">
                                         <FaSchool className="text-white text-[10px]" />
                                     </div>
                                     <h3 className="text-[13px] font-bold text-gray-800">Selecionar Escola</h3>
                                 </div>
-                                <div className="px-4 py-3 grid gap-2.5">
+                                <div className="px-6 py-4 grid gap-3">
                                     <GlassSelect
                                         label="Concelho" value={selectedConcelho}
                                         onChange={e => { setSelectedConcelho(e.target.value); setData('escola_id', ''); }}
@@ -237,16 +237,16 @@ export default function CreateOrder({ auth, schools, concelhos, anos_escolares }
                                 </div>
                             </div>
 
-                            {/* Card: Dados do Aluno */}
-                            <div className="card-3d overflow-hidden animate-card-in-delay">
-                                <div className="px-4 py-2.5 flex items-center gap-2 border-b border-gray-100">
+                            {/* Card: Dados do Aluno (UPDATED: rounded-[2.5rem]) */}
+                            <div className="card-3d overflow-hidden animate-card-in-delay rounded-3xl">
+                                <div className="px-6 py-3 flex items-center gap-2 border-b border-gray-100">
                                     <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-violet-500 to-purple-600 flex items-center justify-center shadow-sm shadow-violet-500/25">
                                         <FaUser className="text-white text-[10px]" />
                                     </div>
                                     <h3 className="text-[13px] font-bold text-gray-800">Dados do Aluno</h3>
                                 </div>
-                                <div className="px-4 py-3 space-y-2.5">
-                                    <div className="grid grid-cols-2 gap-2.5">
+                                <div className="px-6 py-4 space-y-3">
+                                    <div className="grid grid-cols-2 gap-3">
                                         <GlassInput
                                             label="NIF" value={data.nif} error={errors.nif}
                                             onChange={e => setData('nif', e.target.value)}
@@ -265,7 +265,7 @@ export default function CreateOrder({ auth, schools, concelhos, anos_escolares }
                                         onChange={e => setData('nome', e.target.value)}
                                         placeholder="Nome do aluno"
                                     />
-                                    <div className="grid grid-cols-2 gap-2.5">
+                                    <div className="grid grid-cols-2 gap-3">
                                         <GlassInput
                                             label="Telefone" value={data.telefone}
                                             onChange={e => setData('telefone', e.target.value)}
@@ -291,12 +291,12 @@ export default function CreateOrder({ auth, schools, concelhos, anos_escolares }
                             </div>
                         </div>
 
-                        {/* RIGHT COLUMN: BOOKS */}
+                        {/* RIGHT COLUMN: BOOKS (UPDATED: rounded-[2.5rem]) */}
                         <div className="lg:col-span-7 h-full min-h-0">
-                            <div className="card-3d flex flex-col h-full overflow-hidden animate-card-in">
+                            <div className="card-3d flex flex-col h-full overflow-hidden animate-card-in rounded-3xl">
 
                                 {/* Header */}
-                                <div className="shrink-0 px-5 py-3 border-b border-gray-100">
+                                <div className="shrink-0 px-6 py-4 border-b border-gray-100">
                                     <div className="flex justify-between items-center">
                                         <div className="flex items-center gap-2.5">
                                             <div className="w-8 h-8 rounded-[10px] bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center shadow-sm shadow-emerald-500/25">
@@ -326,7 +326,7 @@ export default function CreateOrder({ auth, schools, concelhos, anos_escolares }
 
                                     {/* Quick action buttons */}
                                     {availableBooks.length > 0 && (
-                                        <div className="mt-2.5 flex flex-wrap gap-1.5 items-center">
+                                        <div className="mt-3 flex flex-wrap gap-1.5 items-center">
                                             <span className="text-[10px] font-bold text-gray-400 uppercase mr-0.5">Qtd:</span>
                                             <PillBtn label="1x Tudo" onClick={() => addAllQuantity(null)} />
                                             <PillBtn label="1x Manuais" onClick={() => addAllQuantity('Manual')} />
@@ -340,7 +340,7 @@ export default function CreateOrder({ auth, schools, concelhos, anos_escolares }
                                 </div>
 
                                 {/* Table header */}
-                                <div className="grid grid-cols-12 gap-2 px-5 py-2 border-b border-gray-100 text-[10px] font-bold text-gray-400 uppercase tracking-wider bg-gray-50/50">
+                                <div className="grid grid-cols-12 gap-2 px-6 py-2 border-b border-gray-100 text-[10px] font-bold text-gray-400 uppercase tracking-wider bg-gray-50/50">
                                     <div className="col-span-5">Livro</div>
                                     <div className="col-span-2 text-right">Preço</div>
                                     <div className="col-span-3 text-center">Qtd.</div>
@@ -367,7 +367,7 @@ export default function CreateOrder({ auth, schools, concelhos, anos_escolares }
                                                 const isEncapar = !!encaparMap[book.id];
                                                 return (
                                                     <div key={book.id}
-                                                         className={`grid grid-cols-12 gap-2 px-5 py-2.5 items-center transition-all duration-200 border-b border-gray-100/50 ${isSelected ? 'bg-indigo-50/70 border-l-[3px] border-l-indigo-500 pl-[calc(1.25rem-3px)]' : 'hover:bg-gray-50/60 border-l-[3px] border-l-transparent'}`}>
+                                                         className={`grid grid-cols-12 gap-2 px-6 py-3 items-center transition-all duration-200 border-b border-gray-100/50 ${isSelected ? 'bg-indigo-50/70 border-l-[3px] border-l-indigo-500 pl-[calc(1.5rem-3px)]' : 'hover:bg-gray-50/60 border-l-[3px] border-l-transparent'}`}>
                                                         <div className="col-span-5 overflow-hidden">
                                                             <p className={`text-[13px] font-semibold truncate ${isSelected ? 'text-indigo-900' : 'text-gray-800'}`}>{book.titulo}</p>
                                                             <div className="flex items-center gap-2 mt-0.5">
@@ -380,12 +380,12 @@ export default function CreateOrder({ auth, schools, concelhos, anos_escolares }
                                                         </div>
                                                         <div className="col-span-3 flex justify-center items-center gap-1.5">
                                                             <button type="button" onClick={() => updateQuantity(book.id, -1)} disabled={qty === 0}
-                                                                className="w-7 h-7 flex items-center justify-center rounded-[10px] bg-white border border-gray-200 text-gray-400 hover:border-red-300 hover:text-red-500 hover:bg-red-50 disabled:opacity-20 disabled:cursor-not-allowed transition-all duration-200 active:scale-90">
+                                                                    className="w-7 h-7 flex items-center justify-center rounded-[10px] bg-white border border-gray-200 text-gray-400 hover:border-red-300 hover:text-red-500 hover:bg-red-50 disabled:opacity-20 disabled:cursor-not-allowed transition-all duration-200 active:scale-90">
                                                                 <FaMinus className="text-[10px]" />
                                                             </button>
                                                             <span className={`w-7 text-center font-bold text-[13px] tabular-nums ${isSelected ? 'text-indigo-600' : 'text-gray-300'}`}>{qty}</span>
                                                             <button type="button" onClick={() => updateQuantity(book.id, 1)}
-                                                                className="w-7 h-7 flex items-center justify-center rounded-[10px] bg-gradient-to-b from-indigo-500 to-indigo-600 text-white shadow-sm shadow-indigo-500/30 hover:shadow-md hover:shadow-indigo-500/30 transition-all duration-200 active:scale-90">
+                                                                    className="w-7 h-7 flex items-center justify-center rounded-[10px] bg-gradient-to-b from-indigo-500 to-indigo-600 text-white shadow-sm shadow-indigo-500/30 hover:shadow-md hover:shadow-indigo-500/30 transition-all duration-200 active:scale-90">
                                                                 <FaPlus className="text-[10px]" />
                                                             </button>
                                                         </div>
@@ -406,7 +406,7 @@ export default function CreateOrder({ auth, schools, concelhos, anos_escolares }
                                 </div>
 
                                 {/* Footer */}
-                                <div className="shrink-0 border-t border-gray-100 px-5 py-3.5 flex items-center justify-between bg-gray-50/50">
+                                <div className="shrink-0 border-t border-gray-100 px-6 py-4 flex items-center justify-between bg-gray-50/50">
                                     <div>
                                         <p className="text-[10px] text-gray-400 uppercase font-bold tracking-wider mb-0.5">Total Estimado</p>
                                         <div className="flex items-baseline gap-2.5">
@@ -418,7 +418,7 @@ export default function CreateOrder({ auth, schools, concelhos, anos_escolares }
                                     <button
                                         type="submit"
                                         disabled={!isFormValid || processing}
-                                        className="px-7 py-3 bg-gradient-to-b from-indigo-500 to-indigo-600 hover:from-indigo-600 hover:to-indigo-700 text-white text-sm font-bold rounded-2xl shadow-lg shadow-indigo-500/25 hover:shadow-xl hover:shadow-indigo-500/30 disabled:opacity-30 disabled:shadow-none disabled:cursor-not-allowed transition-all duration-200 active:scale-[0.97] flex items-center gap-2.5"
+                                        className="px-8 py-3 bg-gradient-to-b from-indigo-500 to-indigo-600 hover:from-indigo-600 hover:to-indigo-700 text-white text-sm font-bold rounded-2xl shadow-lg shadow-indigo-500/25 hover:shadow-xl hover:shadow-indigo-500/30 disabled:opacity-30 disabled:shadow-none disabled:cursor-not-allowed transition-all duration-200 active:scale-[0.97] flex items-center gap-2.5"
                                     >
                                         {processing ? (
                                             <FaSpinner className="animate-spin" />
@@ -436,14 +436,14 @@ export default function CreateOrder({ auth, schools, concelhos, anos_escolares }
                 </div>
             </div>
 
-            {/* Modal "Adicionar Livro" */}
+            {/* Modal "Adicionar Livro" (UPDATED: rounded-[3rem] e !bg-white) */}
             {showAddBookModal && (
                 <div className={`fixed inset-0 z-50 flex items-center justify-center ${modalClosing ? '' : 'animate-backdrop-in'}`}
                      style={{ background: 'rgba(0,0,0,0.2)', backdropFilter: 'blur(10px)', WebkitBackdropFilter: 'blur(10px)' }}
                      onClick={e => { if (e.target === e.currentTarget) closeModal(); }}>
-                    <div className={`card-3d rounded-3xl w-full max-w-lg mx-4 flex flex-col max-h-[80vh] ${modalClosing ? 'animate-modal-out' : 'animate-modal-in'}`}>
+                    <div className={`card-3d !bg-white rounded-3xl w-full max-w-lg mx-4 flex flex-col max-h-[80vh] ${modalClosing ? 'animate-modal-out' : 'animate-modal-in'}`}>
                         {/* Modal header */}
-                        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
+                        <div className="flex items-center justify-between px-8 py-5 border-b border-gray-100">
                             <h3 className="text-lg font-extrabold text-gray-900">Adicionar Livro</h3>
                             <button type="button" onClick={closeModal}
                                 className="w-8 h-8 flex items-center justify-center text-gray-400 hover:text-gray-600 hover:bg-gray-100/60 rounded-xl transition-all duration-200 active:scale-90">
@@ -451,7 +451,7 @@ export default function CreateOrder({ auth, schools, concelhos, anos_escolares }
                             </button>
                         </div>
                         {/* Search field */}
-                        <div className="px-6 py-4 border-b border-gray-100">
+                        <div className="px-8 py-5 border-b border-gray-100">
                             <div className="relative">
                                 <FaSearch className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 text-sm" />
                                 <input
@@ -470,7 +470,7 @@ export default function CreateOrder({ auth, schools, concelhos, anos_escolares }
                             {bookSearchResults.length === 0 && bookSearchQuery.length >= 2 && !bookSearchLoading ? (
                                 <div className="p-8 text-center text-gray-400 text-sm font-medium">Nenhum livro encontrado</div>
                             ) : (
-                                <div className="px-2 py-1.5">
+                                <div className="px-4 py-3">
                                     {bookSearchResults.map(book => {
                                         const alreadyAdded = !!availableBooks.find(b => b.id === book.id);
                                         return (
