@@ -110,7 +110,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     //Route::get('/catalogo/livros', [LivroController::class, 'index'])->name('catalogo.livros.index');
     Route::get('/books-list', [LivroController::class, 'index'])->name('books.index');
     Route::get('/api/get-lista-books', [LivroController::class, 'getListaBooks'])->name('api.lista.books');
-    Route::post('/catalogo/livros', [LivroController::class, 'store'])->name('book-lists.store');
+    Route::post('/books-list', [LivroController::class, 'store'])->name('book-lists.store');
     });
 
 
