@@ -104,6 +104,17 @@ export default function Sidebar({ user }) {
           disabled: false,
       },
 
+      {
+      section: "Gestão",
+      },
+      {
+          label: "Gestão",
+          href: route('gestao.index'), 
+          active: isActive(currentPath, "/gestao"),
+          icon: <FaWarehouse className="w-5 h-5" />,
+          disabled: false,
+      },
+
     
     {
       section: "Conta",
