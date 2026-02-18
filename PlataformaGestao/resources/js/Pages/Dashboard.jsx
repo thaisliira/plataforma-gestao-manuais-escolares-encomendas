@@ -118,7 +118,7 @@ function StatCard({ stat }) {
 
                 <Link
                     href={stat.href || "#"}
-                    className={`mt-4 w-fit py-1.5 px-3 rounded-lg text-[10px] font-bold text-white flex items-center gap-2 hover:opacity-90 transition-opacity ${stat.btnColor}`}
+                    className={`mt-4 w-full py-2 px-3 rounded-lg text-[10px] font-bold text-white flex items-center justify-center gap-2 hover:opacity-90 transition-opacity ${stat.btnColor}`}
                 >
                     Ver Detalhes <FaArrowRight className="w-3 h-3"/>
                 </Link>

@@ -109,14 +109,42 @@ public function store(Request $request)
     \Log::info('Itens antigos deletados');
 
     if ($request->items && count($request->items) > 0) {
+        $livros = Livro::whereIn('id', $request->items)->get()->keyBy('id');
+
+        // Agrupar por disciplina_id para juntar manual + caderno na mesma linha
+        $porDisciplina = [];
         foreach ($request->items as $livroId) {
-            \Log::info('Criando item:', ['livro_id' => $livroId]);
+            $livro = $livros->get($livroId);
+            if (!$livro) continue;
+
+            $discId = $livro->disciplina_id ?? 'sem_disciplina_' . $livroId;
+
+            if (!isset($porDisciplina[$discId])) {
+                $porDisciplina[$discId] = [
+                    'disciplina_id' => $livro->disciplina_id,
+                    'manual_livro_id' => null,
+                    'caderno_livro_id' => null,
+                ];
+            }
+
+            if ($livro->tipo === 'MANUAL') {
+                $porDisciplina[$discId]['manual_livro_id'] = $livro->id;
+            } elseif ($livro->tipo === 'CADERNO_ATIVIDADES') {
+                $porDisciplina[$discId]['caderno_livro_id'] = $livro->id;
+            }
+        }
+
+        foreach ($porDisciplina as $item) {
+            \Log::info('Criando item:', $item);
             $lista->itens()->create([
-                'manual_livro_id' => $livroId,
-                'lista_id' => $lista->id
+                'lista_id' => $lista->id,
+                'disciplina_id' => $item['disciplina_id'],
+                'manual_livro_id' => $item['manual_livro_id'],
+                'caderno_livro_id' => $item['caderno_livro_id'],
             ]);
         }
-        \Log::info('Total de itens criados:', ['count' => count($request->items)]);
+
+        \Log::info('Total de itens criados:', ['count' => count($porDisciplina)]);
     } else {
         \Log::warning('Nenhum item para salvar!');
     }
