@@ -75,7 +75,7 @@ export default function Sidebar({ user }) {
     {
       label: "Gerir Escolas",
       href: route('escolas.index'), 
-      active: isActive(currentPath, "/escolas/gerir"),
+      active: isActive(currentPath, "/escolas"),
       icon: <FaSchool className="w-5 h-5" />,
       disabled: false,
     },
@@ -100,6 +100,17 @@ export default function Sidebar({ user }) {
           label: "Stock",
           href: route('stock.index'), 
           active: isActive(currentPath, "/stock"),
+          icon: <FaWarehouse className="w-5 h-5" />,
+          disabled: false,
+      },
+
+      {
+      section: "Gestão",
+      },
+      {
+          label: "Gestão",
+          href: route('gestao.index'), 
+          active: isActive(currentPath, "/concelhos"),
           icon: <FaWarehouse className="w-5 h-5" />,
           disabled: false,
       },
