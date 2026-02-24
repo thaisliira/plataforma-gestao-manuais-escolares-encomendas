@@ -1,7 +1,7 @@
 import React, { useMemo, useState } from "react";
 import AuthenticatedLayout from "@/Layouts/AuthenticatedLayout";
 import { Head, router, usePage } from "@inertiajs/react";
-import { FaPlus, FaPen, FaTrash, FaMapMarkerAlt, FaBuilding } from "react-icons/fa";
+import { FaPlus, FaPen, FaTrash, FaMapMarkerAlt, FaBuilding, FaGraduationCap } from "react-icons/fa";
 import ModalShell from "@/Components/Orders/Editora/ModalShell";
 
 function TabButton({ active, children, onClick, icon }) {
@@ -128,13 +128,14 @@ function ConfirmDeleteModal({ open, onClose, title, subtitle, onConfirm, loading
   );
 }
 
-export default function Index({ auth, concelhos, editoras, initial }) {
+export default function Index({ auth, concelhos, editoras, disciplinas, initial }) {
   const { flash } = usePage().props;
 
   const [tab, setTab] = useState("CONCELHOS");
 
   const [searchConcelhos, setSearchConcelhos] = useState(initial?.concelhos_search || "");
   const [searchEditoras, setSearchEditoras] = useState(initial?.editoras_search || "");
+  const [searchDisciplinas, setSearchDisciplinas] = useState(initial?.disciplinas_search || "");
 
   const [newConcelhoOpen, setNewConcelhoOpen] = useState(false);
   const [editConcelho, setEditConcelho] = useState(null);
@@ -144,6 +145,10 @@ export default function Index({ auth, concelhos, editoras, initial }) {
   const [editEditora, setEditEditora] = useState(null);
   const [deleteEditora, setDeleteEditora] = useState(null);
 
+  const [newDisciplinaOpen, setNewDisciplinaOpen] = useState(false);
+  const [editDisciplina, setEditDisciplina] = useState(null);
+  const [deleteDisciplina, setDeleteDisciplina] = useState(null);
+
   React.useEffect(() => {
     const t = setTimeout(() => {
       router.get(
@@ -151,16 +156,18 @@ export default function Index({ auth, concelhos, editoras, initial }) {
         {
           search: searchConcelhos || undefined,
           editoras_search: searchEditoras || undefined,
+          disciplinas_search: searchDisciplinas || undefined,
         },
         { preserveState: true, replace: true, preserveScroll: true }
       );
     }, 250);
 
     return () => clearTimeout(t);
-  }, [searchConcelhos, searchEditoras]);
+  }, [searchConcelhos, searchEditoras, searchDisciplinas]);
 
   const concelhosList = useMemo(() => concelhos || [], [concelhos]);
   const editorasList = useMemo(() => editoras || [], [editoras]);
+  const disciplinasList = useMemo(() => disciplinas || [], [disciplinas]);
 
   const postConcelho = (payload) => {
     router.post(route("concelhos.store"), payload, {
@@ -204,6 +211,27 @@ export default function Index({ auth, concelhos, editoras, initial }) {
     });
   };
 
+  const postDisciplina = (payload) => {
+    router.post(route("disciplinas.store"), payload, {
+      preserveScroll: true,
+      onSuccess: () => setNewDisciplinaOpen(false),
+    });
+  };
+
+  const putDisciplina = (id, payload) => {
+    router.put(route("disciplinas.update", id), payload, {
+      preserveScroll: true,
+      onSuccess: () => setEditDisciplina(null),
+    });
+  };
+
+  const delDisciplina = (id) => {
+    router.delete(route("disciplinas.destroy", id), {
+      preserveScroll: true,
+      onSuccess: () => setDeleteDisciplina(null),
+    });
+  };
+
   return (
     <AuthenticatedLayout user={auth.user}>
       <Head title="Gestão" />
@@ -232,6 +260,13 @@ export default function Index({ auth, concelhos, editoras, initial }) {
                 icon={<FaBuilding />}
               >
                 Editoras
+              </TabButton>
+              <TabButton
+                active={tab === "DISCIPLINAS"}
+                onClick={() => setTab("DISCIPLINAS")}
+                icon={<FaGraduationCap />}
+              >
+                Disciplinas
               </TabButton>
             </div>
           </div>
@@ -350,6 +385,60 @@ export default function Index({ auth, concelhos, editoras, initial }) {
             </div>
           )}
 
+          {/* ---------------- DISCIPLINAS ---------------- */}
+          {tab === "DISCIPLINAS" && (
+            <div className="space-y-4">
+              <div className="card-3d rounded-3xl p-5 flex flex-col md:flex-row gap-3 md:items-center md:justify-between animate-card-in">
+                <input
+                  value={searchDisciplinas}
+                  onChange={(e) => setSearchDisciplinas(e.target.value)}
+                  placeholder="Pesquisar disciplina..."
+                  className="glass-input w-full md:max-w-md rounded-xl px-4 py-3 text-sm font-semibold text-gray-800"
+                />
+
+                <button
+                  onClick={() => setNewDisciplinaOpen(true)}
+                  className="inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-gradient-to-b from-indigo-500 to-indigo-600 hover:from-indigo-600 hover:to-indigo-700 text-white text-sm font-bold rounded-2xl shadow-lg shadow-indigo-500/25 hover:shadow-xl hover:shadow-indigo-500/30 transition-all duration-200 active:scale-[0.97] whitespace-nowrap"
+                >
+                  <FaPlus /> Nova Disciplina
+                </button>
+              </div>
+
+              <div className="card-3d rounded-3xl overflow-hidden animate-card-in-delay">
+                <div className="overflow-auto">
+                  <table className="w-full text-sm">
+                    <thead className="bg-gray-50/50 border-b border-white/40">
+                      <tr className="text-left text-[11px] font-bold uppercase tracking-wide text-gray-400">
+                        <th className="px-4 py-3">Nome</th>
+                        <th className="px-4 py-3 text-right">Ações</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-100/60">
+                      {disciplinasList.map((d) => (
+                        <tr key={d.id} className="hover:bg-indigo-50/20 transition-colors">
+                          <td className="px-4 py-3 font-semibold text-gray-900">{d.nome}</td>
+                          <td className="px-4 py-3">
+                            <RowActions
+                              onEdit={() => setEditDisciplina(d)}
+                              onDelete={() => setDeleteDisciplina(d)}
+                            />
+                          </td>
+                        </tr>
+                      ))}
+                      {disciplinasList.length === 0 && (
+                        <tr>
+                          <td colSpan={2} className="px-4 py-10 text-center text-sm text-gray-400">
+                            Sem disciplinas.
+                          </td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          )}
+
         </div>
       </div>
 
@@ -399,6 +488,30 @@ export default function Index({ auth, concelhos, editoras, initial }) {
         title="Remover Editora"
         subtitle={`Tens a certeza que queres remover "${deleteEditora?.nome}"?`}
         onConfirm={() => delEditora(deleteEditora.id)}
+      />
+
+      {/* -------- MODAIS DISCIPLINAS -------- */}
+      <NameModal
+        open={newDisciplinaOpen}
+        onClose={() => setNewDisciplinaOpen(false)}
+        title="Nova Disciplina"
+        onSubmit={(payload) => postDisciplina(payload)}
+      />
+
+      <NameModal
+        open={!!editDisciplina}
+        onClose={() => setEditDisciplina(null)}
+        title="Editar Disciplina"
+        initialName={editDisciplina?.nome || ""}
+        onSubmit={(payload) => putDisciplina(editDisciplina.id, payload)}
+      />
+
+      <ConfirmDeleteModal
+        open={!!deleteDisciplina}
+        onClose={() => setDeleteDisciplina(null)}
+        title="Remover Disciplina"
+        subtitle={`Tens a certeza que queres remover "${deleteDisciplina?.nome}"?`}
+        onConfirm={() => delDisciplina(deleteDisciplina.id)}
       />
     </AuthenticatedLayout>
   );

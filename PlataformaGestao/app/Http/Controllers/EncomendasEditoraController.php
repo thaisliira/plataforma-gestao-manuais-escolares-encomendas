@@ -14,7 +14,7 @@ use App\Models\EncomendaLivroEditoraItem;
 
 class EncomendasEditoraController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
         
         $stats = [
@@ -146,9 +146,10 @@ class EncomendasEditoraController extends Controller
             ->values();
 
         return Inertia::render('Orders/Editora/Index', [
-            'stats' => $stats,
-            'orders' => $orders,
+            'stats'          => $stats,
+            'orders'         => $orders,
             'toOrderGrouped' => $toOrderGrouped,
+            'initialStatus'  => $request->input('status', 'ALL'),
         ]);
     }
     public function receive(Request $request)

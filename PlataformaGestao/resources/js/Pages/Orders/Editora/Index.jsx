@@ -11,9 +11,9 @@ import NewOrderModal from "@/Components/Orders/Editora/NewOrderModal";
 import ViewOrderModal from "@/Components/Orders/Editora/ViewOrderModal";
 import ReceiveOrderModal from "@/Components/Orders/Editora/ReceiveOrderModal";
 
-export default function Index({ auth, stats, toOrderGrouped, orders }) {
+export default function Index({ auth, stats, toOrderGrouped, orders, initialStatus = "ALL" }) {
   const [search, setSearch] = useState("");
-  const [statusFilter, setStatusFilter] = useState("ALL");
+  const [statusFilter, setStatusFilter] = useState(initialStatus);
 
   
   const [isNewOpen, setIsNewOpen] = useState(false);

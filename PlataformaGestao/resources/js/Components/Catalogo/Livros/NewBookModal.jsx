@@ -2,6 +2,12 @@ import React from "react";
 import { useForm } from "@inertiajs/react";
 import ModalShell from "@/Components/Orders/Editora/ModalShell";
 
+const normalizeTipo = (t) => {
+  const v = String(t || "manual").trim().toLowerCase();
+  if (v === "caderno_atividades" || v === "caderno de atividades" || v === "caderno") return "caderno_atividades";
+  return "manual";
+};
+
 export default function NewBookModal({ open, onClose, filters }) {
   const form = useForm({
     titulo: "",
@@ -13,6 +19,11 @@ export default function NewBookModal({ open, onClose, filters }) {
     isbn: "",
     ativo: true,
   });
+
+  
+  const [isbnMatch, setIsbnMatch] = React.useState(null); 
+  const [isbnLoading, setIsbnLoading] = React.useState(false);
+  const isbnTimerRef = React.useRef(null);
 
   React.useEffect(() => {
     if (!open) return;
@@ -29,9 +40,53 @@ export default function NewBookModal({ open, onClose, filters }) {
       isbn: "",
       ativo: true,
     });
+    setIsbnMatch(null);
   }, [open]);
 
   if (!open) return null;
+
+  const handleIsbnChange = (value) => {
+    form.setData("isbn", value);
+    setIsbnMatch(null);
+
+    clearTimeout(isbnTimerRef.current);
+
+    if (value.trim().length < 5) {
+      setIsbnLoading(false);
+      return;
+    }
+
+    setIsbnLoading(true);
+    isbnTimerRef.current = setTimeout(async () => {
+      try {
+        const res = await fetch(
+          route("catalogo.livros.checkIsbn") + "?isbn=" + encodeURIComponent(value.trim())
+        );
+        const json = await res.json();
+
+        if (json.livro) {
+          setIsbnMatch(json.livro);
+          form.setData((prev) => ({
+            ...prev,
+            isbn: value,
+            titulo: json.livro.titulo ?? prev.titulo,
+            disciplina_id: json.livro.disciplina_id ?? prev.disciplina_id,
+            ano_escolar_id: json.livro.ano_escolar_id ?? prev.ano_escolar_id,
+            editora_id: json.livro.editora_id ?? prev.editora_id,
+            tipo: normalizeTipo(json.livro.tipo),
+            preco: json.livro.preco !== undefined ? String(json.livro.preco) : prev.preco,
+            ativo: json.livro.ativo ?? prev.ativo,
+          }));
+        } else {
+          setIsbnMatch(null);
+        }
+      } catch {
+        setIsbnMatch(null);
+      } finally {
+        setIsbnLoading(false);
+      }
+    }, 500);
+  };
 
   const submit = (e) => {
     e.preventDefault();
@@ -39,15 +94,66 @@ export default function NewBookModal({ open, onClose, filters }) {
     form.post(route("catalogo.livros.store"), {
       preserveScroll: true,
       onSuccess: () => onClose(),
-      onError: () => {
- 
-      },
+      onError: () => {},
     });
   };
 
   return (
     <ModalShell title="Novo Livro" onClose={onClose} size="lg">
       <form onSubmit={submit} className="space-y-5">
+
+        {/* ISBN — primeiro para permitir autocomplete */}
+        <div>
+          <label className="block text-sm font-black text-gray-900 mb-2">
+            ISBN <span className="text-red-600">*</span>
+          </label>
+          <div className="relative">
+            <input
+              required
+              value={form.data.isbn}
+              onChange={(e) => handleIsbnChange(e.target.value)}
+              className="w-full bg-gray-50 border border-gray-100 rounded-xl px-4 py-3 text-sm font-semibold text-gray-800 outline-none focus:ring-2 focus:ring-black pr-10"
+              placeholder="Ex: 978-..."
+            />
+            {isbnLoading && (
+              <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 text-xs animate-pulse">
+                ⟳
+              </span>
+            )}
+          </div>
+          {form.errors.isbn && (
+            <p className="text-xs text-red-600 mt-1">{form.errors.isbn}</p>
+          )}
+        </div>
+
+        {/* Banner quando encontra livro eliminado */}
+        {isbnMatch?.deleted && (
+          <div className="flex items-start gap-3 p-4 rounded-xl border border-amber-200 bg-amber-50">
+            <span className="text-amber-500 text-lg leading-none mt-0.5">⚠</span>
+            <div className="text-sm text-amber-800">
+              <p className="font-black mb-0.5">Livro eliminado encontrado</p>
+              <p className="font-semibold">
+                Existe um livro eliminado com este ISBN — os campos foram preenchidos automaticamente.
+                Ao criar, o livro será <span className="underline">restaurado</span> com os dados abaixo.
+              </p>
+            </div>
+          </div>
+        )}
+
+        {/* Banner quando encontra livro ativo (duplicado) */}
+        {isbnMatch && !isbnMatch.deleted && (
+          <div className="flex items-start gap-3 p-4 rounded-xl border border-blue-200 bg-blue-50">
+            <span className="text-blue-500 text-lg leading-none mt-0.5">ℹ</span>
+            <div className="text-sm text-blue-800">
+              <p className="font-black mb-0.5">ISBN já existente</p>
+              <p className="font-semibold">
+                Este ISBN já está associado ao livro <span className="font-black">"{isbnMatch.titulo}"</span> (ativo).
+                Os campos foram preenchidos com os seus dados.
+              </p>
+            </div>
+          </div>
+        )}
+
         {/* Título */}
         <div>
           <label className="block text-sm font-black text-gray-900 mb-2">
@@ -108,6 +214,7 @@ export default function NewBookModal({ open, onClose, filters }) {
                   {a.label ?? a.nome ?? a.ano ?? a.id}
                 </option>
               ))}
+              <option value="">Outro</option>
             </select>
             {form.errors.ano_escolar_id && (
               <p className="text-xs text-red-600 mt-1">
@@ -171,27 +278,10 @@ export default function NewBookModal({ open, onClose, filters }) {
               <option key={ed.id} value={ed.id}>
                 {ed.nome}
               </option>
-            ))} 
+            ))}
           </select>
           {form.errors.editora_id && (
             <p className="text-xs text-red-600 mt-1">{form.errors.editora_id}</p>
-          )}
-        </div>
-
-        {/* ISBN */}
-        <div>
-          <label className="block text-sm font-black text-gray-900 mb-2">
-            ISBN <span className="text-red-600">*</span>
-          </label>
-          <input
-            required
-            value={form.data.isbn}
-            onChange={(e) => form.setData("isbn", e.target.value)}
-            className="w-full bg-gray-50 border border-gray-100 rounded-xl px-4 py-3 text-sm font-semibold text-gray-800 outline-none focus:ring-2 focus:ring-black"
-            placeholder="Ex: 978-..."
-          />
-          {form.errors.isbn && (
-            <p className="text-xs text-red-600 mt-1">{form.errors.isbn}</p>
           )}
         </div>
 
@@ -222,10 +312,14 @@ export default function NewBookModal({ open, onClose, filters }) {
               form.processing ? "bg-gray-400 cursor-not-allowed" : "bg-black hover:bg-gray-800"
             }`}
           >
-            {form.processing ? "A criar..." : "Criar"}
+            {form.processing
+              ? "A processar..."
+              : isbnMatch?.deleted
+              ? "Restaurar e Guardar"
+              : "Criar"}
           </button>
         </div>
       </form>
     </ModalShell>
   );
-} 
+}
