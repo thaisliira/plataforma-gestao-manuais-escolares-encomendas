@@ -334,6 +334,15 @@ const handlePrint = (order) => {
   printWindow.focus();
 };
 
+function EmptyState({ title, desc }) {
+  return (
+    <div className="text-center py-8">
+      <div className="text-base font-black text-gray-900">{title}</div>
+      <div className="text-sm text-gray-500 mt-1">{desc}</div>
+    </div>
+  );
+}
+
 export default function OrdersHistoryTable({ orders, onView, onReceive }) {
   return (
     <div>

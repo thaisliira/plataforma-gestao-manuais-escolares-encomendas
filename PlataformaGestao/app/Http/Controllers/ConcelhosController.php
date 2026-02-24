@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Concelho;
+use App\Models\Disciplina;
 use App\Models\Editora;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -11,8 +12,9 @@ class ConcelhosController extends Controller
 {
     public function index(Request $request)
     {
-        $concelhosSearch = $request->string('search')->toString();
-        $editorasSearch  = $request->string('editoras_search')->toString();
+        $concelhosSearch   = $request->string('search')->toString();
+        $editorasSearch    = $request->string('editoras_search')->toString();
+        $disciplinasSearch = $request->string('disciplinas_search')->toString();
 
         $concelhosQuery = Concelho::query()->orderBy('nome');
         if ($concelhosSearch) {
@@ -24,12 +26,19 @@ class ConcelhosController extends Controller
             $editorasQuery->where('nome', 'like', "%{$editorasSearch}%");
         }
 
+        $disciplinasQuery = Disciplina::query()->orderBy('nome');
+        if ($disciplinasSearch) {
+            $disciplinasQuery->where('nome', 'like', "%{$disciplinasSearch}%");
+        }
+
         return Inertia::render('Gestao/Index', [
-            'concelhos' => $concelhosQuery->get(['id', 'nome']),
-            'editoras'  => $editorasQuery->get(['id', 'nome']),
+            'concelhos'   => $concelhosQuery->get(['id', 'nome']),
+            'editoras'    => $editorasQuery->get(['id', 'nome']),
+            'disciplinas' => $disciplinasQuery->get(['id', 'nome']),
             'initial' => [
-                'concelhos_search' => $concelhosSearch,
-                'editoras_search'  => $editorasSearch,
+                'concelhos_search'   => $concelhosSearch,
+                'editoras_search'    => $editorasSearch,
+                'disciplinas_search' => $disciplinasSearch,
             ],
         ]);
     }

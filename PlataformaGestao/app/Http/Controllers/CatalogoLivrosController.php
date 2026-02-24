@@ -144,7 +144,7 @@ class CatalogoLivrosController extends Controller
         $data = $request->validate([
             'titulo' => ['required', 'string', 'max:255'],
             'disciplina_id' => ['required', 'integer', 'exists:disciplinas,id'],
-            'ano_escolar_id' => ['required', 'integer', 'exists:anos_escolares,id'],
+            'ano_escolar_id' => ['nullable', 'integer', 'exists:anos_escolares,id'],
             'tipo' => ['required', Rule::in(['manual', 'caderno_atividades'])],
             'preco' => ['required', 'numeric', 'min:0'],
             'editora_id' => ['required', 'integer', 'exists:editoras,id'],
@@ -166,21 +166,65 @@ class CatalogoLivrosController extends Controller
             ->with('success', $livro->ativo ? 'Livro ativado.' : 'Livro tornado inativo.');
     }
 
+    public function checkIsbn(Request $request)
+    {
+        $isbn = trim($request->string('isbn')->toString());
+
+        if (strlen($isbn) < 5) {
+            return response()->json(['livro' => null]);
+        }
+
+        $livro = Livro::withTrashed()
+            ->where('isbn', $isbn)
+            ->with(['disciplina', 'anoEscolar', 'editora'])
+            ->first();
+
+        if (!$livro) {
+            return response()->json(['livro' => null]);
+        }
+
+        return response()->json([
+            'livro' => [
+                'id'             => $livro->id,
+                'titulo'         => $livro->titulo,
+                'disciplina_id'  => $livro->disciplina_id,
+                'ano_escolar_id' => $livro->ano_escolar_id,
+                'editora_id'     => $livro->editora_id,
+                'tipo'           => strtolower($livro->tipo),
+                'preco'          => (float) $livro->preco,
+                'ativo'          => (bool) $livro->ativo,
+                'isbn'           => $livro->isbn,
+                'deleted'        => $livro->trashed(),
+            ],
+        ]);
+    }
+
     public function store(Request $request)
     {
         $data = $request->validate([
-            'titulo' => ['required', 'string', 'max:255'],
-            'disciplina_id' => ['required', 'integer', 'exists:disciplinas,id'],
-            'ano_escolar_id' => ['required', 'integer', 'exists:anos_escolares,id'],
-            'tipo' => ['required', Rule::in(['manual', 'caderno_atividades'])],
-            'preco' => ['required', 'numeric', 'min:0'],
-            'editora_id' => ['required', 'integer', 'exists:editoras,id'],
-
-            
-            'isbn' => ['required', 'string', 'max:255'],
-
-            'ativo' => ['required', 'boolean'],
+            'titulo'         => ['required', 'string', 'max:255'],
+            'disciplina_id'  => ['required', 'integer', 'exists:disciplinas,id'],
+            'ano_escolar_id' => ['nullable', 'integer', 'exists:anos_escolares,id'],
+            'tipo'           => ['required', Rule::in(['manual', 'caderno_atividades'])],
+            'preco'          => ['required', 'numeric', 'min:0'],
+            'editora_id'     => ['required', 'integer', 'exists:editoras,id'],
+            'isbn'           => ['required', 'string', 'max:255'],
+            'ativo'          => ['required', 'boolean'],
         ]);
+
+        $deletedLivro = Livro::withTrashed()
+            ->where('isbn', $data['isbn'])
+            ->whereNotNull('deleted_at')
+            ->first();
+
+        if ($deletedLivro) {
+            $deletedLivro->restore();
+            $deletedLivro->update($data);
+
+            return redirect()
+                ->route('catalogo.livros.index')
+                ->with('success', 'Livro restaurado e atualizado com sucesso.');
+        }
 
         Livro::create($data);
 

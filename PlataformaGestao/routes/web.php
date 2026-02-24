@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\OrderController;
 use App\Http\Controllers\EncomendasEditoraController;
 use App\Http\Controllers\CatalogoLivrosController;
@@ -23,9 +24,7 @@ Route::get('/', function () {
 Route::middleware(['auth', 'verified'])->group(function () {
 
     // Dashboard
-    Route::get('/dashboard', function () {
-        return Inertia::render('Dashboard');
-    })->name('dashboard');
+    Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
 
     // ---------- ENCOMENDAS (Clientes) ----------
     Route::get('/encomendas/clientes', [OrderController::class, 'index'])
@@ -59,6 +58,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
     // ---------- CATÁLOGO ----------
     Route::get('/catalogo/livros', [CatalogoLivrosController::class, 'index'])
         ->name('catalogo.livros.index');
+
+    Route::get('/api/catalogo/livros/check-isbn', [CatalogoLivrosController::class, 'checkIsbn'])
+        ->name('catalogo.livros.checkIsbn');
 
     Route::post('/catalogo/livros', [CatalogoLivrosController::class, 'store'])
         ->name('catalogo.livros.store');
@@ -130,6 +132,10 @@ Route::get('/editoras', [\App\Http\Controllers\EditorasController::class, 'index
 Route::post('/editoras', [\App\Http\Controllers\EditorasController::class, 'store'])->name('editoras.store');
 Route::put('/editoras/{editora}', [\App\Http\Controllers\EditorasController::class, 'update'])->name('editoras.update');
 Route::delete('/editoras/{editora}', [\App\Http\Controllers\EditorasController::class, 'destroy'])->name('editoras.destroy');
+
+Route::post('/disciplinas', [\App\Http\Controllers\DisciplinasController::class, 'store'])->name('disciplinas.store');
+Route::put('/disciplinas/{disciplina}', [\App\Http\Controllers\DisciplinasController::class, 'update'])->name('disciplinas.update');
+Route::delete('/disciplinas/{disciplina}', [\App\Http\Controllers\DisciplinasController::class, 'destroy'])->name('disciplinas.destroy');
 
 
 require __DIR__ . '/auth.php';
