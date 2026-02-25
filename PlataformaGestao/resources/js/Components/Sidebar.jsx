@@ -172,7 +172,7 @@ export default function Sidebar({ user }) {
       
       <div className="border-t border-gray-200 p-4 bg-gray-50">
         <div className="flex items-center w-full">
-          <div className="h-9 w-9 rounded-full bg-blue-600 text-white flex items-center justify-center font-semibold text-sm">
+          <div className="h-9 w-9 shrink-0 rounded-full bg-blue-600 text-white flex items-center justify-center font-semibold text-sm">
             {user.name.slice(0, 2).toUpperCase()}
           </div>
 

@@ -7,6 +7,7 @@ use App\Models\StockMovimento;
 use App\Models\Disciplina;
 use App\Models\Editora;
 use App\Models\AnoEscolar;
+use App\Models\EncomendaAluno;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
@@ -143,9 +144,12 @@ class StockController extends Controller
                 'livro_id' => $livroId,
                 'tipo' => $operacao === 'ADICIONAR' ? 1 : 2,
                 'quantidade' => $quantidade,
-                
+
             ]);
         });
+
+        // Recalcular status das encomendas afetadas por este livro
+        EncomendaAluno::recalculateForBook($livroId);
 
         return back();
     }
@@ -179,6 +183,9 @@ class StockController extends Controller
                 'quantidade' => $quantidade,
             ]);
         });
+
+        // Recalcular status das encomendas afetadas por este livro
+        EncomendaAluno::recalculateForBook($livroId);
 
         return back();
     }
