@@ -14,10 +14,9 @@ class StockSeeder extends Seeder
         $livros = Livro::where('ativo', true)->get();
 
         foreach ($livros as $livro) {
-            // Quantidade entre 0 e 50
             Stock::create([
                 'livro_id' => $livro->id,
-                'quantidade' => rand(0, 50),
+                'quantidade' => rand(5, 50),
             ]);
         }
     }
