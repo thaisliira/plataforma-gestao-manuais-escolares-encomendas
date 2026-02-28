@@ -260,23 +260,7 @@ class OrderController extends Controller
         $nif = $request->input('nif');
         $idMega = $request->input('id_mega');
 
-        // Procurar na tabela de encomendas anteriores (snapshot)
-        $encomenda = EncomendaAluno::query()
-            ->when($nif, fn($q) => $q->where('nif', $nif))
-            ->when($idMega, fn($q) => $q->where('id_mega', $idMega))
-            ->orderBy('created_at', 'desc')
-            ->first();
-
-        if ($encomenda) {
-            return response()->json([
-                'found' => true,
-                'nome' => $encomenda->nome,
-                'telefone' => $encomenda->telefone,
-                'email' => null, // Email não está na tabela encomendas_aluno
-            ]);
-        }
-
-        // Se não encontrar, procurar na tabela de alunos (se existir)
+        // Procurar primeiro na tabela de alunos (fonte de verdade)
         $aluno = \App\Models\Aluno::query()
             ->when($nif, fn($q) => $q->where('nif', $nif))
             ->when($idMega, fn($q) => $q->where('id_mega', $idMega))
@@ -288,6 +272,24 @@ class OrderController extends Controller
                 'nome' => $aluno->nome,
                 'telefone' => $aluno->telefone,
                 'email' => $aluno->email,
+                'id_mega' => $aluno->id_mega,
+            ]);
+        }
+
+        // Fallback: procurar em encomendas anteriores (snapshot)
+        $encomenda = EncomendaAluno::query()
+            ->when($nif, fn($q) => $q->where('nif', $nif))
+            ->when($idMega, fn($q) => $q->where('id_mega', $idMega))
+            ->orderBy('created_at', 'desc')
+            ->first();
+
+        if ($encomenda) {
+            return response()->json([
+                'found' => true,
+                'nome' => $encomenda->nome,
+                'telefone' => $encomenda->telefone,
+                'email' => null,
+                'id_mega' => $encomenda->id_mega,
             ]);
         }
 
@@ -408,6 +410,7 @@ class OrderController extends Controller
             'id_mega' => 'nullable|string|max:50',
             'nome' => 'required|string|max:255',
             'telefone' => 'nullable|string|max:20',
+            'email' => 'nullable|email|max:255',
             'escola_id' => 'required|exists:escolas,id',
             'ano_escolar_id' => 'required|exists:anos_escolares,id',
             'ano_letivo_id' => 'required|exists:anos_letivos,id',
@@ -427,9 +430,20 @@ class OrderController extends Controller
                 ->where('ano_escolar_id', $validated['ano_escolar_id'])
                 ->first();
 
+            // Criar ou atualizar aluno na tabela de alunos
+            $aluno = \App\Models\Aluno::updateOrCreate(
+                ['nif' => $validated['nif']],
+                [
+                    'nome' => $validated['nome'],
+                    'telefone' => $validated['telefone'] ?? null,
+                    'email' => $validated['email'] ?? null,
+                    'id_mega' => $validated['id_mega'] ?? null,
+                ]
+            );
+
             // Criar encomenda
             $encomenda = EncomendaAluno::create([
-                'aluno_id' => null, // Pode ser implementado lookup mais tarde
+                'aluno_id' => $aluno->id,
                 'nif' => $validated['nif'],
                 'id_mega' => $validated['id_mega'],
                 'nome' => $validated['nome'],
@@ -442,18 +456,20 @@ class OrderController extends Controller
                 'observacao' => $validated['observacao'],
             ]);
 
-            // Criar items da encomenda
+            // Criar items da encomenda — uma linha por unidade física
             foreach ($validated['items'] as $item) {
-                EncomendaLivroAlunoItem::create([
-                    'encomenda_aluno_id' => $encomenda->id,
-                    'livro_id' => $item['livro_id'],
-                    'quantidade' => $item['quantidade'],
-                    'encapar' => $item['encapar'] ?? false,
-                    'encapado' => false,
-                    'quantidade_entregue' => 0,
-                    'entregue' => false,
-                    'ensacado' => false,
-                ]);
+                for ($i = 0; $i < $item['quantidade']; $i++) {
+                    EncomendaLivroAlunoItem::create([
+                        'encomenda_aluno_id' => $encomenda->id,
+                        'livro_id' => $item['livro_id'],
+                        'quantidade' => 1,
+                        'encapar' => $item['encapar'] ?? false,
+                        'encapado' => false,
+                        'quantidade_entregue' => 0,
+                        'entregue' => false,
+                        'ensacado' => false,
+                    ]);
+                }
             }
 
             // Recalcular status com base no stock disponível
@@ -492,6 +508,29 @@ class OrderController extends Controller
             $oldValue = $item->{$validated['field']};
             $item->{$validated['field']} = $validated['value'];
             $item->save();
+
+            // Ajustar stock quando o estado de ensacamento muda
+            if ($validated['field'] === 'ensacado' && $item->livro_id) {
+                $stock = \App\Models\Stock::where('livro_id', $item->livro_id)->first();
+                if ($validated['value']) {
+                    // Marcar como ensacado: deduzir stock
+                    if ($stock && $stock->quantidade >= $item->quantidade) {
+                        $stock->quantidade -= $item->quantidade;
+                        $stock->save();
+                    }
+                } else {
+                    // Desensacar: devolver ao stock
+                    if ($stock) {
+                        $stock->quantidade += $item->quantidade;
+                        $stock->save();
+                    } else {
+                        \App\Models\Stock::create([
+                            'livro_id' => $item->livro_id,
+                            'quantidade' => $item->quantidade,
+                        ]);
+                    }
+                }
+            }
 
             // Criar registo de auditoria
             AuditLog::create([
@@ -621,6 +660,95 @@ class OrderController extends Controller
     }
 
     /**
+     * Normalizar itens legados: dividir qty>1 em linhas individuais (qty=1)
+     */
+    public function normalizeItems($orderId)
+    {
+        try {
+            $order = EncomendaAluno::findOrFail($orderId);
+            $items = $order->itens()->where('quantidade', '>', 1)->get();
+
+            DB::beginTransaction();
+            foreach ($items as $item) {
+                $qty = $item->quantidade;
+                for ($i = 1; $i < $qty; $i++) {
+                    EncomendaLivroAlunoItem::create([
+                        'encomenda_aluno_id' => $orderId,
+                        'livro_id' => $item->livro_id,
+                        'quantidade' => 1,
+                        'encapar' => $item->encapar,
+                        'encapado' => $item->encapado,
+                        'ensacado' => $item->ensacado,
+                        'entregue' => $item->entregue,
+                        'quantidade_entregue' => $item->entregue ? 1 : 0,
+                    ]);
+                }
+                $item->quantidade = 1;
+                $item->save();
+            }
+            DB::commit();
+
+            // Retornar os itens normalizados no mesmo formato do frontend
+            $order->load('itens.livro.editora', 'itens.livro.disciplina');
+            $formattedItems = $order->itens->map(function ($item) {
+                return [
+                    'id' => $item->id,
+                    'title' => $item->livro?->titulo ?? 'Livro não encontrado',
+                    'isbn' => $item->livro?->isbn,
+                    'disciplina' => $item->livro?->disciplina?->nome,
+                    'editora' => $item->livro?->editora?->nome,
+                    'quantity' => $item->quantidade,
+                    'price' => (float) ($item->livro?->preco ?? 0),
+                    'subtotal' => (float) ($item->livro?->preco ?? 0) * $item->quantidade,
+                    'encapar' => $item->encapar,
+                    'encapado' => $item->encapado,
+                    'ensacado' => $item->ensacado,
+                    'entregue' => $item->entregue,
+                    'quantidade_entregue' => $item->quantidade_entregue,
+                ];
+            });
+
+            return response()->json(['success' => true, 'items' => $formattedItems]);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json(['success' => false, 'message' => $e->getMessage()], 500);
+        }
+    }
+
+    /**
+     * Remover livro individual de uma encomenda
+     */
+    public function deleteItem($orderId, $itemId)
+    {
+        try {
+            $item = EncomendaLivroAlunoItem::where('id', $itemId)
+                ->where('encomenda_aluno_id', $orderId)
+                ->firstOrFail();
+
+            // Devolver ao stock sempre que um item é removido
+            if ($item->livro_id) {
+                $stock = \App\Models\Stock::where('livro_id', $item->livro_id)->first();
+                if ($stock) {
+                    $stock->quantidade += $item->quantidade;
+                    $stock->save();
+                } else {
+                    \App\Models\Stock::create([
+                        'livro_id' => $item->livro_id,
+                        'quantidade' => $item->quantidade,
+                    ]);
+                }
+            }
+
+            $item->delete();
+            $this->checkAndUpdateOrderStatus($orderId);
+
+            return response()->json(['success' => true]);
+        } catch (\Exception $e) {
+            return response()->json(['success' => false, 'message' => $e->getMessage()], 500);
+        }
+    }
+
+    /**
      * Eliminar encomenda (soft delete)
      */
     public function destroy($orderId)
@@ -666,23 +794,50 @@ class OrderController extends Controller
                 ->where('encomenda_aluno_id', $orderId)
                 ->firstOrFail();
 
-            // Atualizar quantidade
-            if (isset($validated['quantidade']) && $validated['quantidade'] !== $item->quantidade) {
-                $oldQty = $item->quantidade;
-                $item->quantidade = $validated['quantidade'];
+            $newItems = [];
 
-                AuditLog::create([
-                    'user_id' => auth()->id(),
-                    'entity_type' => 'EncomendaLivroAlunoItem',
-                    'entity_id' => $item->id,
-                    'action' => 'updated_quantidade',
-                    'changes' => [
-                        'livro_titulo' => $item->livro?->titulo ?? 'N/A',
-                        'old_value' => $oldQty,
-                        'new_value' => $validated['quantidade'],
-                    ],
-                    'created_at' => now(),
-                ]);
+            // Adicionar unidades extras à encomenda e deduzir do stock
+            if (isset($validated['quantidade'])) {
+                // Como os itens estão normalizados a qty=1, criar items adicionais
+                $diff = $validated['quantidade'] - 1;
+
+                if ($diff > 0 && $item->livro_id) {
+                    for ($i = 0; $i < $diff; $i++) {
+                        $newItemModel = EncomendaLivroAlunoItem::create([
+                            'encomenda_aluno_id' => $orderId,
+                            'livro_id' => $item->livro_id,
+                            'quantidade' => 1,
+                            'encapar' => $item->encapar,
+                            'encapado' => false,
+                            'ensacado' => false,
+                            'entregue' => false,
+                            'quantidade_entregue' => 0,
+                        ]);
+                        $newItemModel->load('livro.editora', 'livro.disciplina');
+                        $newItems[] = $newItemModel;
+                    }
+
+                    // Deduzir do stock
+                    $stock = \App\Models\Stock::firstOrNew(
+                        ['livro_id' => $item->livro_id],
+                        ['quantidade' => 0]
+                    );
+                    $stock->quantidade = max(0, $stock->quantidade - $diff);
+                    $stock->save();
+
+                    AuditLog::create([
+                        'user_id' => auth()->id(),
+                        'entity_type' => 'EncomendaLivroAlunoItem',
+                        'entity_id' => $item->id,
+                        'action' => 'updated_quantidade',
+                        'changes' => [
+                            'livro_titulo' => $item->livro?->titulo ?? 'N/A',
+                            'old_value' => 1,
+                            'new_value' => $validated['quantidade'],
+                        ],
+                        'created_at' => now(),
+                    ]);
+                }
             }
 
             // Trocar livro
@@ -706,24 +861,31 @@ class OrderController extends Controller
             }
 
             $item->save();
-
-            // Recarregar com relação
             $item->load('livro.editora', 'livro.disciplina');
+
+            $formatItem = function ($i) {
+                return [
+                    'id' => $i->id,
+                    'title' => $i->livro?->titulo ?? 'N/A',
+                    'isbn' => $i->livro?->isbn,
+                    'disciplina' => $i->livro?->disciplina?->nome,
+                    'editora' => $i->livro?->editora?->nome,
+                    'price' => (float) ($i->livro?->preco ?? 0),
+                    'quantity' => $i->quantidade,
+                    'encapar' => $i->encapar,
+                    'encapado' => $i->encapado,
+                    'ensacado' => $i->ensacado,
+                    'entregue' => $i->entregue,
+                    'quantidade_entregue' => $i->quantidade_entregue ?? 0,
+                ];
+            };
+
+            $this->checkAndUpdateOrderStatus($orderId);
 
             return response()->json([
                 'success' => true,
-                'item' => [
-                    'id' => $item->id,
-                    'title' => $item->livro?->titulo ?? 'N/A',
-                    'isbn' => $item->livro?->isbn,
-                    'editora' => $item->livro?->editora?->nome,
-                    'price' => (float) ($item->livro?->preco ?? 0),
-                    'quantity' => $item->quantidade,
-                    'encapar' => $item->encapar,
-                    'encapado' => $item->encapado,
-                    'ensacado' => $item->ensacado,
-                    'entregue' => $item->entregue,
-                ],
+                'item' => $formatItem($item),
+                'newItems' => array_map($formatItem, $newItems),
             ]);
         } catch (\Exception $e) {
             return response()->json(['success' => false, 'message' => 'Erro ao editar: ' . $e->getMessage()], 500);

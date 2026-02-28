@@ -10,6 +10,7 @@ import axios from 'axios';
 
 export default function CreateOrder({ auth, schools, concelhos, anos_escolares }) {
     const [studentLoading, setStudentLoading] = useState(false);
+    const [studentStatus, setStudentStatus] = useState(null); // 'found' | 'new' | null
     const [booksLoading, setBooksLoading] = useState(false);
     const [availableBooks, setAvailableBooks] = useState([]);
     const [cart, setCart] = useState({});
@@ -44,7 +45,11 @@ export default function CreateOrder({ auth, schools, concelhos, anos_escolares }
                     nome: response.data.nome || prev.nome,
                     telefone: response.data.telefone || prev.telefone,
                     email: response.data.email || prev.email,
+                    id_mega: response.data.id_mega || prev.id_mega,
                 }));
+                setStudentStatus('found');
+            } else {
+                setStudentStatus('new');
             }
         } catch (error) { console.log('Aluno não encontrado'); }
         finally { setStudentLoading(false); }
@@ -244,12 +249,22 @@ export default function CreateOrder({ auth, schools, concelhos, anos_escolares }
                                         <FaUser className="text-white text-[10px]" />
                                     </div>
                                     <h3 className="text-[13px] font-bold text-gray-800">Dados do Aluno</h3>
+                                    {studentStatus === 'found' && (
+                                        <span className="ml-auto text-[10px] font-bold px-2 py-0.5 rounded-lg bg-emerald-500/10 text-emerald-600">
+                                            Aluno encontrado
+                                        </span>
+                                    )}
+                                    {studentStatus === 'new' && (
+                                        <span className="ml-auto text-[10px] font-bold px-2 py-0.5 rounded-lg bg-amber-500/10 text-amber-600">
+                                            Novo aluno
+                                        </span>
+                                    )}
                                 </div>
                                 <div className="px-6 py-4 space-y-3">
                                     <div className="grid grid-cols-2 gap-3">
                                         <GlassInput
                                             label="NIF" value={data.nif} error={errors.nif}
-                                            onChange={e => setData('nif', e.target.value)}
+                                            onChange={e => { setData('nif', e.target.value); setStudentStatus(null); }}
                                             onBlur={e => handleStudentLookup('nif', e.target.value)}
                                             placeholder="123456789"
                                         />

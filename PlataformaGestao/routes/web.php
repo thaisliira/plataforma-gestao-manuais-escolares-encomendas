@@ -42,6 +42,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
     // APIs para processamento de encomendas
     Route::patch('/api/orders/{orderId}/items/{itemId}', [OrderController::class, 'updateItem'])->name('api.orders.updateItem');
     Route::patch('/api/orders/{orderId}/items/{itemId}/edit', [OrderController::class, 'editItem'])->name('api.orders.editItem');
+    Route::delete('/api/orders/{orderId}/items/{itemId}', [OrderController::class, 'deleteItem'])->name('api.orders.deleteItem');
+    Route::post('/api/orders/{orderId}/normalize-items', [OrderController::class, 'normalizeItems'])->name('api.orders.normalizeItems');
     Route::get('/api/orders/{orderId}/history', [OrderController::class, 'getHistory'])->name('api.orders.history');
     Route::get('/api/orders/{orderId}/pdf', [OrderController::class, 'printPDF'])->name('api.orders.pdf');
     Route::delete('/api/orders/{orderId}', [OrderController::class, 'destroy'])->name('api.orders.destroy');

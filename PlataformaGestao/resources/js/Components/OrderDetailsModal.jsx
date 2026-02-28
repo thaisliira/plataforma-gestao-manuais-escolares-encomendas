@@ -8,6 +8,8 @@ export default function OrderDetailsModal({ order: initialOrder, onClose }) {
     const [history, setHistory] = useState([]);
     const [activeTab, setActiveTab] = useState('items');
     const [deleting, setDeleting] = useState(false);
+    const [bulkLoading, setBulkLoading] = useState(false);
+    const [modalClosing, setModalClosing] = useState(false);
 
     // Estado de edicao inline
     const [editingItemId, setEditingItemId] = useState(null);
@@ -20,8 +22,16 @@ export default function OrderDetailsModal({ order: initialOrder, onClose }) {
     const [swapResults, setSwapResults] = useState([]);
     const [swapLoading, setSwapLoading] = useState(false);
 
+    const closeModal = () => {
+        setModalClosing(true);
+        setTimeout(() => {
+            onClose();
+        }, 200);
+    };
+
     useEffect(() => {
         loadHistory();
+        normalizeItems();
     }, []);
 
     const loadHistory = async () => {
@@ -33,25 +43,33 @@ export default function OrderDetailsModal({ order: initialOrder, onClose }) {
         }
     };
 
+    // Dividir itens legados com qty>1 em linhas individuais
+    const normalizeItems = async () => {
+        const hasMultiple = initialOrder.items.some(i => i.quantity > 1);
+        if (!hasMultiple) return;
+        try {
+            const response = await axios.post(`/api/orders/${initialOrder.id}/normalize-items`);
+            if (response.data.success) {
+                setOrder(prev => ({ ...prev, items: response.data.items }));
+            }
+        } catch (error) {
+            console.error('Erro ao normalizar itens:', error);
+        }
+    };
+
     // Atualizar checkbox de item (Optimistic UI)
     const handleCheckboxChange = async (itemId, field, currentValue) => {
         const newValue = !currentValue;
-
         setOrder(prev => ({
             ...prev,
             items: prev.items.map(item =>
                 item.id === itemId ? { ...item, [field]: newValue } : item
             )
         }));
-
         try {
-            await axios.patch(`/api/orders/${order.id}/items/${itemId}`, {
-                field,
-                value: newValue
-            });
+            await axios.patch(`/api/orders/${order.id}/items/${itemId}`, { field, value: newValue });
             loadHistory();
         } catch (error) {
-            console.error('Erro ao atualizar item:', error);
             setOrder(prev => ({
                 ...prev,
                 items: prev.items.map(item =>
@@ -59,6 +77,55 @@ export default function OrderDetailsModal({ order: initialOrder, onClose }) {
                 )
             }));
             alert('Erro ao atualizar item. Tente novamente.');
+        }
+    };
+
+    // Ação em massa com toggle: se todos já marcados → desmarcar, senão → marcar
+    const handleBulkAction = async (field) => {
+        const relevantItems = field === 'encapado'
+            ? order.items.filter(item => item.encapar)
+            : order.items;
+
+        if (relevantItems.length === 0) return;
+
+        const allMarked = relevantItems.every(item => item[field]);
+        const targetValue = !allMarked;
+
+        const itemsToUpdate = relevantItems.filter(item => item[field] !== targetValue);
+        if (itemsToUpdate.length === 0) return;
+
+        setBulkLoading(true);
+        setOrder(prev => ({
+            ...prev,
+            items: prev.items.map(item => {
+                if (field === 'encapado' && !item.encapar) return item;
+                return { ...item, [field]: targetValue };
+            })
+        }));
+        try {
+            await Promise.all(
+                itemsToUpdate.map(item =>
+                    axios.patch(`/api/orders/${order.id}/items/${item.id}`, { field, value: targetValue })
+                )
+            );
+            loadHistory();
+        } catch (error) {
+            alert('Erro ao atualizar itens.');
+        } finally {
+            setBulkLoading(false);
+        }
+    };
+
+    // Remover livro da encomenda
+    const handleDeleteItem = async (itemId) => {
+        if (!confirm('Remover este livro da encomenda?')) return;
+        try {
+            await axios.delete(`/api/orders/${order.id}/items/${itemId}`);
+            setOrder(prev => ({ ...prev, items: prev.items.filter(item => item.id !== itemId) }));
+            if (editingItemId === itemId) setEditingItemId(null);
+            loadHistory();
+        } catch (error) {
+            alert('Erro ao remover livro da encomenda.');
         }
     };
 
@@ -76,36 +143,36 @@ export default function OrderDetailsModal({ order: initialOrder, onClose }) {
         }
     };
 
-    // Imprimir PDF
-    const handlePrintPDF = () => {
-        window.open(`/api/orders/${order.id}/pdf`, '_blank');
-    };
+    const handlePrintPDF = () => window.open(`/api/orders/${order.id}/pdf`, '_blank');
 
-    // Iniciar edicao de quantidade
     const startEditQty = (item) => {
         setEditingItemId(item.id);
         setEditQty(String(item.quantity));
         setSwapItemId(null);
     };
 
-    // Guardar edicao de quantidade
     const saveEditQty = async (itemId) => {
         const newQty = parseInt(editQty);
         if (isNaN(newQty) || newQty < 1) { alert('Quantidade inválida'); return; }
-
         setEditSaving(true);
         try {
-            const response = await axios.patch(`/api/orders/${order.id}/items/${itemId}/edit`, {
-                quantidade: newQty
-            });
+            const response = await axios.patch(`/api/orders/${order.id}/items/${itemId}/edit`, { quantidade: newQty });
             if (response.data.success) {
+                const addedItems = response.data.newItems || [];
                 setOrder(prev => ({
                     ...prev,
-                    items: prev.items.map(item =>
-                        item.id === itemId ? { ...item, ...response.data.item } : item
-                    )
+                    items: [
+                        ...prev.items.map(item =>
+                            item.id === itemId ? { ...item, ...response.data.item } : item
+                        ),
+                        ...addedItems,
+                    ]
                 }));
                 loadHistory();
+                if (addedItems.length > 0) {
+                    setEditingItemId(null);
+                    setSwapItemId(null);
+                }
             }
         } catch (error) {
             alert('Erro ao guardar quantidade.');
@@ -115,15 +182,12 @@ export default function OrderDetailsModal({ order: initialOrder, onClose }) {
         }
     };
 
-    // Iniciar troca de livro
     const startSwapBook = (item) => {
         setSwapItemId(item.id);
         setSwapQuery('');
         setSwapResults([]);
-        setEditingItemId(null);
     };
 
-    // Pesquisa debounce para troca de livro
     useEffect(() => {
         if (!swapQuery || swapQuery.length < 2) { setSwapResults([]); return; }
         const timeout = setTimeout(async () => {
@@ -137,13 +201,10 @@ export default function OrderDetailsModal({ order: initialOrder, onClose }) {
         return () => clearTimeout(timeout);
     }, [swapQuery]);
 
-    // Confirmar troca de livro
     const confirmSwapBook = async (newBookId) => {
         setEditSaving(true);
         try {
-            const response = await axios.patch(`/api/orders/${order.id}/items/${swapItemId}/edit`, {
-                livro_id: newBookId
-            });
+            const response = await axios.patch(`/api/orders/${order.id}/items/${swapItemId}/edit`, { livro_id: newBookId });
             if (response.data.success) {
                 setOrder(prev => ({
                     ...prev,
@@ -163,255 +224,268 @@ export default function OrderDetailsModal({ order: initialOrder, onClose }) {
         }
     };
 
-    // Expandir itens para stacking visual (qty 3 -> 3 linhas visuais)
-    const expandedItems = [];
-    order.items.forEach(item => {
-        for (let i = 0; i < item.quantity; i++) {
-            expandedItems.push({
-                ...item,
-                unitIndex: i,
-                unitLabel: item.quantity > 1 ? `${i + 1}/${item.quantity}` : null,
-                isFirstUnit: i === 0,
-            });
-        }
-    });
-
-    // Progresso
-    const totalUnits = expandedItems.length;
-    const unitsEntregues = order.items.reduce((sum, i) => sum + (i.entregue ? i.quantity : 0), 0);
-    const progressPercent = totalUnits > 0 ? (unitsEntregues / totalUnits) * 100 : 0;
+    const totalItems = order.items.length;
+    const itemsEntregues = order.items.filter(i => i.entregue).length;
+    const progressPercent = totalItems > 0 ? (itemsEntregues / totalItems) * 100 : 0;
+    const hasEncaparItems = order.items.some(i => i.encapar);
 
     return (
-        <div className="fixed inset-0 bg-gray-900 bg-opacity-40 backdrop-blur-sm flex items-center justify-center z-50 p-4" onClick={onClose}>
-            <div className="bg-white rounded-xl shadow-2xl max-w-6xl w-full max-h-[90vh] overflow-hidden flex flex-col" onClick={(e) => e.stopPropagation()}>
+        <div
+            className={`fixed inset-0 z-50 flex items-center justify-center p-4 ${modalClosing ? '' : 'animate-backdrop-in'}`}
+            style={{ background: 'rgba(0,0,0,0.2)', backdropFilter: 'blur(10px)', WebkitBackdropFilter: 'blur(10px)' }}
+            onClick={e => { if (e.target === e.currentTarget) closeModal(); }}
+        >
+            <div className={`card-3d !bg-white rounded-3xl w-full max-w-6xl mx-4 max-h-[90vh] overflow-hidden flex flex-col ${modalClosing ? 'animate-modal-out' : 'animate-modal-in'}`}>
 
-                {/* Header */}
-                <div className="bg-gray-50 border-b border-gray-200">
-                    <div className="px-6 py-4 flex justify-between items-center">
-                        <div>
-                            <h2 className="text-lg font-bold text-gray-900">Detalhes da Encomenda #{order.id}</h2>
-                            <p className="text-xs text-gray-500">Criada a {order.date}</p>
-                        </div>
-                        <button onClick={onClose} className="p-2 hover:bg-gray-200 rounded-full text-gray-400 hover:text-gray-600 transition">
-                            <FaTimes />
-                        </button>
+                {/* ── Header ── */}
+                <div className="flex items-center justify-between px-8 py-5 border-b border-gray-100">
+                    <div>
+                        <h2 className="text-lg font-extrabold text-gray-900">Encomenda #{order.id}</h2>
+                        <p className="text-xs text-gray-400 font-medium mt-0.5">Criada a {order.date}</p>
                     </div>
-
-                    {/* Barra de Progresso */}
-                    <div className="px-6 pb-4">
-                        <div className="flex justify-between items-center mb-2">
-                            <span className="text-xs font-medium text-gray-600">Progresso de Entrega</span>
-                            <span className="text-xs font-bold text-indigo-600">{unitsEntregues} de {totalUnits} unidades</span>
-                        </div>
-                        <div className="w-full bg-gray-200 rounded-full h-2">
-                            <div
-                                className="bg-indigo-600 h-2 rounded-full transition-all duration-500"
-                                style={{ width: `${progressPercent}%` }}
-                            />
-                        </div>
-                    </div>
-
-                    {/* Tabs */}
-                    <div className="flex border-t border-gray-200">
-                        <button
-                            onClick={() => setActiveTab('items')}
-                            className={`flex-1 px-6 py-3 text-sm font-medium transition ${
-                                activeTab === 'items'
-                                    ? 'text-indigo-600 border-b-2 border-indigo-600 bg-white'
-                                    : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100'
-                            }`}
-                        >
-                            Itens da Encomenda
-                        </button>
-                        <button
-                            onClick={() => setActiveTab('history')}
-                            className={`flex-1 px-6 py-3 text-sm font-medium transition flex items-center justify-center gap-2 ${
-                                activeTab === 'history'
-                                    ? 'text-indigo-600 border-b-2 border-indigo-600 bg-white'
-                                    : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100'
-                            }`}
-                        >
-                            <FaHistory /> Histórico
-                        </button>
-                    </div>
+                    <button
+                        onClick={closeModal}
+                        className="w-8 h-8 flex items-center justify-center text-gray-400 hover:text-gray-600 hover:bg-gray-100/60 rounded-xl transition-all duration-200 active:scale-90"
+                    >
+                        <FaTimes className="text-sm" />
+                    </button>
                 </div>
 
-                {/* Conteudo */}
-                <div className="flex-1 overflow-y-auto p-6">
+                {/* ── Progresso ── */}
+                {totalItems > 0 && (
+                    <div className="px-8 py-2.5 border-b border-gray-100/80 flex items-center gap-3">
+                        <div className="flex-1 bg-gray-100 rounded-full overflow-hidden" style={{ height: '2px' }}>
+                            <div
+                                className="h-full rounded-full transition-all duration-700 ease-out"
+                                style={{
+                                    width: `${progressPercent}%`,
+                                    background: progressPercent === 100 ? '#34d399' : '#9ca3af',
+                                }}
+                            />
+                        </div>
+                        <span className="text-[10px] font-medium tabular-nums shrink-0" style={{ color: progressPercent === 100 ? '#34d399' : '#d1d5db' }}>
+                            {itemsEntregues}/{totalItems}
+                        </span>
+                    </div>
+                )}
+
+                {/* ── Tabs ── */}
+                <div className="flex border-b border-gray-100 px-8">
+                    {[
+                        { key: 'items', label: 'Itens da Encomenda' },
+                        { key: 'history', label: 'Histórico', icon: <FaHistory className="text-[10px]" /> },
+                    ].map(tab => (
+                        <button
+                            key={tab.key}
+                            onClick={() => setActiveTab(tab.key)}
+                            className={`flex items-center gap-1.5 mr-6 py-3 text-[13px] font-bold border-b-2 transition-all duration-200 ${
+                                activeTab === tab.key
+                                    ? 'text-indigo-600 border-indigo-500'
+                                    : 'text-gray-400 border-transparent hover:text-gray-600'
+                            }`}
+                        >
+                            {tab.icon}{tab.label}
+                        </button>
+                    ))}
+                </div>
+
+                {/* ── Conteúdo ── */}
+                <div className="flex-1 overflow-y-auto custom-scrollbar px-8 py-5">
                     {activeTab === 'items' ? (
                         <div>
+                            {/* Ações em massa */}
+                            {order.items.length > 0 && (
+                                <div className="flex gap-2 mb-4 flex-wrap items-center">
+                                    <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mr-1">Ações em massa:</span>
+                                    <button
+                                        type="button"
+                                        onClick={() => handleBulkAction('ensacado')}
+                                        disabled={bulkLoading}
+                                        className="text-[11px] font-bold px-2.5 py-1 rounded-lg bg-blue-500/10 text-blue-600 hover:bg-blue-500/15 transition-all duration-150 active:scale-95 disabled:opacity-50"
+                                    >
+                                        Ensacar Tudo
+                                    </button>
+                                    {hasEncaparItems && (
+                                        <button
+                                            type="button"
+                                            onClick={() => handleBulkAction('encapado')}
+                                            disabled={bulkLoading}
+                                            className="text-[11px] font-bold px-2.5 py-1 rounded-lg bg-amber-500/10 text-amber-600 hover:bg-amber-500/15 transition-all duration-150 active:scale-95 disabled:opacity-50"
+                                        >
+                                            Encapar Tudo
+                                        </button>
+                                    )}
+                                    <button
+                                        type="button"
+                                        onClick={() => handleBulkAction('entregue')}
+                                        disabled={bulkLoading}
+                                        className="text-[11px] font-bold px-2.5 py-1 rounded-lg bg-emerald-500/10 text-emerald-600 hover:bg-emerald-500/15 transition-all duration-150 active:scale-95 disabled:opacity-50"
+                                    >
+                                        Entregar Tudo
+                                    </button>
+                                    {bulkLoading && <FaSpinner className="animate-spin text-gray-400 text-xs" />}
+                                </div>
+                            )}
+
                             {/* Tabela */}
-                            <div className="border border-gray-200 rounded-lg overflow-hidden">
-                                <table className="min-w-full divide-y divide-gray-200">
-                                    <thead className="bg-gray-50">
-                                        <tr>
-                                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Livro</th>
-                                            <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider w-28">Encapar</th>
-                                            <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider w-28">Ensacar</th>
-                                            <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider w-28">Entregar</th>
-                                            <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider w-24">Preço</th>
-                                            <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider w-20">Ações</th>
+                            <div className="rounded-2xl overflow-hidden border border-gray-100">
+                                <table className="min-w-full divide-y divide-gray-100">
+                                    <thead>
+                                        <tr className="bg-gray-50/50">
+                                            <th className="px-4 py-3 text-left text-[10px] font-bold text-gray-400 uppercase tracking-wider">Livro</th>
+                                            <th className="px-4 py-3 text-center text-[10px] font-bold text-gray-400 uppercase tracking-wider w-28">Ensacar</th>
+                                            <th className="px-4 py-3 text-center text-[10px] font-bold text-gray-400 uppercase tracking-wider w-28">Encapar</th>
+                                            <th className="px-4 py-3 text-center text-[10px] font-bold text-gray-400 uppercase tracking-wider w-28">Entregar</th>
+                                            <th className="px-4 py-3 text-right text-[10px] font-bold text-gray-400 uppercase tracking-wider w-24">Preço</th>
+                                            <th className="px-4 py-3 text-center text-[10px] font-bold text-gray-400 uppercase tracking-wider w-24">Ações</th>
                                         </tr>
                                     </thead>
-                                    <tbody className="bg-white divide-y divide-gray-200">
-                                        {expandedItems.map((item) => (
-                                            <tr key={`${item.id}-${item.unitIndex}`} className={`hover:bg-gray-50 transition ${item.entregue ? 'bg-green-50/30' : ''}`}>
-                                                <td className="px-4 py-3">
-                                                    <div className="flex flex-col">
-                                                        <div className="flex items-center gap-2">
-                                                            <span className="text-sm font-medium text-gray-900">{item.title}</span>
-                                                            {item.unitLabel && (
-                                                                <span className="text-[9px] font-bold bg-gray-200 text-gray-600 px-1.5 py-0.5 rounded">
-                                                                    {item.unitLabel}
-                                                                </span>
-                                                            )}
-                                                        </div>
-                                                        <span className="text-xs text-gray-500">{item.editora} {item.isbn}</span>
-                                                    </div>
-                                                </td>
+                                    <tbody className="divide-y divide-gray-100/80">
+                                        {order.items.map((item) => {
+                                            const noBook = !item.isbn;
+                                            return (
+                                                <tr
+                                                    key={item.id}
+                                                    className={`transition-all duration-150 ${item.entregue ? 'bg-emerald-50/40 border-l-2 border-l-emerald-400' : 'hover:bg-gray-50/60 border-l-2 border-l-transparent'}`}
+                                                >
+                                                    {/* Livro */}
+                                                    <td className="px-4 py-3">
+                                                        <p className="text-[13px] font-semibold text-gray-800">{item.title}</p>
+                                                        <p className="text-[11px] text-gray-400">{item.editora} · {item.isbn}</p>
+                                                    </td>
 
-                                                {/* Encapar - so mostra checkbox na primeira unidade e se foi pedido */}
-                                                <td className="px-4 py-3 text-center">
-                                                    {item.isFirstUnit ? (
-                                                        item.encapar ? (
-                                                            <input
-                                                                type="checkbox"
-                                                                checked={item.encapado}
-                                                                onChange={() => handleCheckboxChange(item.id, 'encapado', item.encapado)}
-                                                                className="w-5 h-5 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500 cursor-pointer accent-indigo-600"
-                                                            />
-                                                        ) : (
-                                                            <span className="text-xs text-gray-400">N/A</span>
-                                                        )
-                                                    ) : (
-                                                        <span className="text-xs text-gray-300">-</span>
-                                                    )}
-                                                </td>
-
-                                                {/* Ensacar - so na primeira unidade */}
-                                                <td className="px-4 py-3 text-center">
-                                                    {item.isFirstUnit ? (
+                                                    {/* Ensacar */}
+                                                    <td className="px-4 py-3 text-center">
                                                         <input
                                                             type="checkbox"
                                                             checked={item.ensacado}
                                                             onChange={() => handleCheckboxChange(item.id, 'ensacado', item.ensacado)}
-                                                            className="w-5 h-5 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500 cursor-pointer accent-indigo-600"
+                                                            disabled={noBook}
+                                                            className="w-4 h-4 text-indigo-600 border-gray-300 rounded cursor-pointer accent-indigo-600 disabled:opacity-30 disabled:cursor-not-allowed"
                                                         />
-                                                    ) : (
-                                                        <span className="text-xs text-gray-300">-</span>
-                                                    )}
-                                                </td>
+                                                    </td>
 
-                                                {/* Entregar - so na primeira unidade */}
-                                                <td className="px-4 py-3 text-center">
-                                                    {item.isFirstUnit ? (
+                                                    {/* Encapar */}
+                                                    <td className="px-4 py-3 text-center">
+                                                        <input
+                                                            type="checkbox"
+                                                            checked={item.encapado}
+                                                            onChange={() => item.encapar && handleCheckboxChange(item.id, 'encapado', item.encapado)}
+                                                            disabled={!item.encapar || noBook}
+                                                            className="w-4 h-4 text-amber-500 border-gray-300 rounded cursor-pointer accent-amber-500 disabled:opacity-30 disabled:cursor-not-allowed"
+                                                        />
+                                                    </td>
+
+                                                    {/* Entregar */}
+                                                    <td className="px-4 py-3 text-center">
                                                         <input
                                                             type="checkbox"
                                                             checked={item.entregue}
                                                             onChange={() => handleCheckboxChange(item.id, 'entregue', item.entregue)}
-                                                            className="w-5 h-5 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500 cursor-pointer accent-indigo-600"
+                                                            disabled={noBook}
+                                                            className="w-4 h-4 text-emerald-600 border-gray-300 rounded cursor-pointer accent-emerald-600 disabled:opacity-30 disabled:cursor-not-allowed"
                                                         />
-                                                    ) : (
-                                                        <span className="text-xs text-gray-300">-</span>
-                                                    )}
-                                                </td>
+                                                    </td>
 
-                                                {/* Preco - so na primeira unidade */}
-                                                <td className="px-4 py-3 text-right whitespace-nowrap text-sm text-gray-500">
-                                                    {item.isFirstUnit ? (
-                                                        <>
-                                                            {item.price.toFixed(2)}€
-                                                        </>
-                                                    ) : null}
-                                                </td>
+                                                    {/* Preço */}
+                                                    <td className="px-4 py-3 text-right">
+                                                        <span className="text-[13px] font-bold text-gray-700">{item.price.toFixed(2)}€</span>
+                                                    </td>
 
-                                                {/* Acoes - so na primeira unidade */}
-                                                <td className="px-4 py-3 text-center">
-                                                    {item.isFirstUnit && (
-                                                        <button
-                                                            type="button"
-                                                            onClick={() => editingItemId === item.id ? setEditingItemId(null) : startEditQty(item)}
-                                                            className="p-1.5 text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 rounded transition"
-                                                            title="Editar"
-                                                        >
-                                                            <FaEdit className="text-sm" />
-                                                        </button>
-                                                    )}
-                                                </td>
-                                            </tr>
-                                        ))}
+                                                    {/* Ações */}
+                                                    <td className="px-4 py-3 text-center">
+                                                        <div className="flex items-center justify-center gap-1">
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => { if (editingItemId === item.id) { setEditingItemId(null); setSwapItemId(null); setSwapQuery(''); setSwapResults([]); } else { startEditQty(item); } }}
+                                                                className="w-7 h-7 flex items-center justify-center text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-all duration-150 active:scale-90"
+                                                                title="Editar"
+                                                            >
+                                                                <FaEdit className="text-xs" />
+                                                            </button>
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => handleDeleteItem(item.id)}
+                                                                className="w-7 h-7 flex items-center justify-center text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all duration-150 active:scale-90"
+                                                                title="Remover"
+                                                            >
+                                                                <FaTrash className="text-xs" />
+                                                            </button>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                            );
+                                        })}
 
-                                        {/* Linha de edicao inline (aparece abaixo do item selecionado) */}
+                                        {/* Linha de edição inline */}
                                         {editingItemId && (
-                                            <tr className="bg-indigo-50/50">
+                                            <tr className="bg-indigo-50/40">
                                                 <td colSpan="6" className="px-4 py-3">
-                                                    <div className="flex items-center gap-4 flex-wrap">
+                                                    <div className="flex items-center gap-3 flex-wrap">
                                                         <div className="flex items-center gap-2">
-                                                            <label className="text-xs font-bold text-gray-500 uppercase">Quantidade:</label>
+                                                            <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Qtd:</label>
                                                             <input
                                                                 type="number"
                                                                 min="1"
                                                                 value={editQty}
                                                                 onChange={e => setEditQty(e.target.value)}
-                                                                className="w-20 px-2 py-1 text-sm border border-gray-300 rounded focus:ring-1 focus:ring-indigo-500"
+                                                                className="glass-input w-20 px-2.5 py-1.5 text-sm rounded-xl"
                                                             />
                                                             <button
                                                                 onClick={() => saveEditQty(editingItemId)}
                                                                 disabled={editSaving}
-                                                                className="px-3 py-1 text-xs font-bold bg-indigo-600 text-white rounded hover:bg-indigo-700 disabled:opacity-50 flex items-center gap-1"
+                                                                className="px-3 py-1.5 text-[11px] font-bold bg-gradient-to-b from-indigo-500 to-indigo-600 text-white rounded-xl hover:from-indigo-600 hover:to-indigo-700 disabled:opacity-50 flex items-center gap-1 active:scale-95 transition-all"
                                                             >
                                                                 {editSaving ? <FaSpinner className="animate-spin" /> : <FaSave />} Guardar
                                                             </button>
                                                         </div>
-                                                        <div className="flex items-center gap-2">
-                                                            <button
-                                                                onClick={() => startSwapBook(order.items.find(i => i.id === editingItemId))}
-                                                                className="px-3 py-1 text-xs font-bold bg-amber-500 text-white rounded hover:bg-amber-600 flex items-center gap-1"
-                                                            >
-                                                                <FaSearch /> Trocar Livro
-                                                            </button>
-                                                        </div>
                                                         <button
-                                                            onClick={() => setEditingItemId(null)}
-                                                            className="px-3 py-1 text-xs text-gray-500 hover:text-gray-700 underline"
+                                                            onClick={() => startSwapBook(order.items.find(i => i.id === editingItemId))}
+                                                            className="px-3 py-1.5 text-[11px] font-bold bg-amber-500/10 text-amber-700 rounded-xl hover:bg-amber-500/20 flex items-center gap-1 active:scale-95 transition-all"
+                                                        >
+                                                            <FaSearch className="text-[9px]" /> Trocar Livro
+                                                        </button>
+                                                        <button
+                                                            onClick={() => { setEditingItemId(null); setSwapItemId(null); setSwapQuery(''); setSwapResults([]); }}
+                                                            className="text-[11px] text-gray-400 hover:text-gray-600 underline"
                                                         >
                                                             Cancelar
                                                         </button>
                                                     </div>
 
-                                                    {/* Pesquisa de troca de livro */}
-                                                    {swapItemId === editingItemId && (
-                                                        <div className="mt-3 border border-gray-200 rounded-lg bg-white p-3">
-                                                            <div className="relative mb-2">
-                                                                <FaSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-xs" />
+                                                    {/* Pesquisa troca livro */}
+                                                    {swapItemId !== null && (
+                                                        <div className="mt-3 border border-gray-100 rounded-2xl bg-white/80 p-4">
+                                                            <div className="relative mb-3">
+                                                                <FaSearch className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 text-xs" />
                                                                 <input
                                                                     type="text"
                                                                     value={swapQuery}
                                                                     onChange={e => setSwapQuery(e.target.value)}
                                                                     placeholder="Pesquisar livro por título ou ISBN..."
-                                                                    className="w-full pl-8 pr-4 py-2 text-sm border border-gray-300 rounded-lg focus:ring-1 focus:ring-indigo-500"
+                                                                    className="glass-input w-full pl-10 pr-4 py-2.5 text-sm rounded-xl placeholder:text-gray-400/70"
                                                                     autoFocus
                                                                 />
-                                                                {swapLoading && <FaSpinner className="absolute right-3 top-1/2 -translate-y-1/2 animate-spin text-indigo-500 text-xs" />}
+                                                                {swapLoading && <FaSpinner className="absolute right-3.5 top-1/2 -translate-y-1/2 animate-spin text-indigo-500 text-xs" />}
                                                             </div>
-                                                            <div className="max-h-40 overflow-y-auto divide-y divide-gray-100">
+                                                            <div className="max-h-40 overflow-y-auto divide-y divide-gray-100 custom-scrollbar">
                                                                 {swapResults.map(book => (
-                                                                    <div key={book.id} className="flex items-center justify-between py-2 px-1 hover:bg-gray-50">
+                                                                    <div key={book.id} className="flex items-center justify-between py-2 px-2 rounded-xl hover:bg-gray-50 transition-all">
                                                                         <div className="overflow-hidden mr-3">
-                                                                            <p className="text-sm font-medium text-gray-900 truncate">{book.titulo}</p>
-                                                                            <p className="text-xs text-gray-500">{book.isbn} - {book.editora_nome}</p>
+                                                                            <p className="text-[13px] font-semibold text-gray-900 truncate">{book.titulo}</p>
+                                                                            <p className="text-[11px] text-gray-400">{book.isbn} · {book.editora_nome}</p>
                                                                         </div>
                                                                         <button
                                                                             onClick={() => confirmSwapBook(book.id)}
                                                                             disabled={editSaving}
-                                                                            className="px-2 py-1 text-xs font-bold bg-indigo-600 text-white rounded hover:bg-indigo-700 disabled:opacity-50 shrink-0"
+                                                                            className="px-3 py-1.5 text-[11px] font-bold bg-gradient-to-b from-indigo-500 to-indigo-600 text-white rounded-xl disabled:opacity-50 shrink-0 active:scale-95 transition-all"
                                                                         >
                                                                             Selecionar
                                                                         </button>
                                                                     </div>
                                                                 ))}
                                                                 {swapQuery.length >= 2 && swapResults.length === 0 && !swapLoading && (
-                                                                    <p className="py-3 text-center text-xs text-gray-400">Nenhum livro encontrado</p>
+                                                                    <p className="py-4 text-center text-[12px] text-gray-400 font-medium">Nenhum livro encontrado</p>
                                                                 )}
                                                             </div>
                                                         </div>
@@ -420,73 +494,74 @@ export default function OrderDetailsModal({ order: initialOrder, onClose }) {
                                             </tr>
                                         )}
                                     </tbody>
-                                    <tfoot className="bg-gray-50">
-                                        <tr>
-                                            <td colSpan="4" className="px-4 py-3 text-right text-sm font-medium text-gray-500">Total da Encomenda:</td>
-                                            <td className="px-4 py-3 text-right text-base font-bold text-indigo-700">{order.total}€</td>
+                                    <tfoot>
+                                        <tr className="bg-gray-50/50 border-t border-gray-100">
+                                            <td colSpan="4" className="px-4 py-3 text-right text-[11px] font-bold text-gray-400 uppercase tracking-wider">Total da Encomenda</td>
+                                            <td className="px-4 py-3 text-right text-[15px] font-extrabold text-gray-800">{order.total}€</td>
                                             <td></td>
                                         </tr>
                                     </tfoot>
                                 </table>
                             </div>
 
-                            {/* Observacoes */}
+                            {/* Observações */}
                             {order.observacao && (
-                                <div className="mt-6 bg-amber-50 text-amber-800 p-4 rounded-lg text-sm border border-amber-100 flex gap-3">
-                                    <span className="font-bold">Nota:</span> {order.observacao}
+                                <div className="mt-4 bg-amber-50/80 text-amber-800 px-4 py-3 rounded-2xl text-sm border border-amber-100 flex gap-2">
+                                    <span className="font-bold shrink-0">Nota:</span>
+                                    <span>{order.observacao}</span>
                                 </div>
                             )}
                         </div>
                     ) : (
-                        /* Tab de Historico */
+                        /* Histórico */
                         <div>
-                            <h3 className="text-xs font-bold uppercase text-gray-400 tracking-wider mb-4">Histórico de Alterações</h3>
-
+                            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-4">Histórico de Alterações</p>
                             {history.length > 0 ? (
-                                <div className="space-y-3">
+                                <div className="space-y-2">
                                     {history.map((log) => (
-                                        <div key={log.id} className="bg-gray-50 rounded-lg p-4 border border-gray-200">
-                                            <div className="flex justify-between items-start mb-2">
+                                        <div key={log.id} className="bg-gray-50/60 rounded-2xl px-4 py-3 border border-gray-100">
+                                            <div className="flex justify-between items-center mb-1">
                                                 <div className="flex items-center gap-2">
-                                                    <FaCheckCircle className="text-indigo-500 text-sm" />
-                                                    <span className="text-sm font-medium text-gray-900">{log.user_name}</span>
+                                                    <FaCheckCircle className="text-indigo-400 text-xs" />
+                                                    <span className="text-[13px] font-semibold text-gray-800">{log.user_name}</span>
                                                 </div>
-                                                <span className="text-xs text-gray-500" title={log.timestamp_full}>
-                                                    {log.timestamp}
-                                                </span>
+                                                <span className="text-[11px] text-gray-400 font-medium" title={log.timestamp_full}>{log.timestamp}</span>
                                             </div>
-                                            <p className="text-sm text-gray-700 ml-6">{log.action}</p>
+                                            <p className="text-[12px] text-gray-600 ml-5">{log.action}</p>
                                         </div>
                                     ))}
                                 </div>
                             ) : (
-                                <div className="text-center py-12 text-gray-400">
-                                    <FaHistory className="mx-auto text-4xl mb-3 opacity-20" />
-                                    <p className="text-sm">Nenhum histórico disponível</p>
+                                <div className="text-center py-16 text-gray-400">
+                                    <FaHistory className="mx-auto text-3xl mb-3 opacity-20" />
+                                    <p className="text-sm font-medium">Nenhum histórico disponível</p>
                                 </div>
                             )}
                         </div>
                     )}
                 </div>
 
-                {/* Footer */}
-                <div className="bg-gray-50 p-4 border-t border-gray-200 flex justify-between items-center">
-                    <div className="flex items-center gap-3">
+                {/* ── Footer ── */}
+                <div className="px-8 py-5 border-t border-gray-100 flex justify-between items-center">
+                    <div className="flex items-center gap-2">
                         <button
                             onClick={handlePrintPDF}
-                            className="flex items-center gap-2 text-sm text-gray-600 hover:text-indigo-700 bg-white border border-gray-300 hover:border-indigo-300 px-3 py-2 rounded-lg transition font-medium"
+                            className="flex items-center gap-2 text-[12px] font-bold text-gray-500 hover:text-indigo-600 bg-gray-100/60 hover:bg-indigo-50 px-3.5 py-2 rounded-xl transition-all duration-200 active:scale-95"
                         >
-                            <FaFilePdf /> Imprimir PDF
+                            <FaFilePdf /> PDF
                         </button>
                         <button
                             onClick={handleDelete}
                             disabled={deleting}
-                            className="flex items-center gap-2 text-sm text-red-600 hover:text-red-800 bg-white border border-red-200 hover:border-red-400 px-3 py-2 rounded-lg transition font-medium disabled:opacity-50"
+                            className="flex items-center gap-2 text-[12px] font-bold text-red-500 hover:text-red-700 bg-red-50/60 hover:bg-red-100/60 px-3.5 py-2 rounded-xl transition-all duration-200 active:scale-95 disabled:opacity-50"
                         >
-                            <FaTrash /> {deleting ? 'A eliminar...' : 'Eliminar Encomenda'}
+                            <FaTrash /> {deleting ? 'A eliminar...' : 'Eliminar'}
                         </button>
                     </div>
-                    <button onClick={onClose} className="px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm font-medium hover:bg-indigo-700 transition">
+                    <button
+                        onClick={closeModal}
+                        className="px-6 py-2 bg-gradient-to-b from-indigo-500 to-indigo-600 hover:from-indigo-600 hover:to-indigo-700 text-white text-[13px] font-bold rounded-xl shadow-sm shadow-indigo-500/25 hover:shadow-md transition-all duration-200 active:scale-[0.97]"
+                    >
                         Fechar
                     </button>
                 </div>
