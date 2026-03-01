@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\AnoLetivo;
 use App\Models\Concelho;
 use App\Models\Disciplina;
 use App\Models\Editora;
@@ -12,9 +13,10 @@ class ConcelhosController extends Controller
 {
     public function index(Request $request)
     {
-        $concelhosSearch   = $request->string('search')->toString();
-        $editorasSearch    = $request->string('editoras_search')->toString();
-        $disciplinasSearch = $request->string('disciplinas_search')->toString();
+        $concelhosSearch    = $request->string('search')->toString();
+        $editorasSearch     = $request->string('editoras_search')->toString();
+        $disciplinasSearch  = $request->string('disciplinas_search')->toString();
+        $anosLetivosSearch  = $request->string('anos_letivos_search')->toString();
 
         $concelhosQuery = Concelho::query()->orderBy('nome');
         if ($concelhosSearch) {
@@ -31,14 +33,21 @@ class ConcelhosController extends Controller
             $disciplinasQuery->where('nome', 'like', "%{$disciplinasSearch}%");
         }
 
+        $anosLetivosQuery = AnoLetivo::query()->orderByDesc('data_inicio');
+        if ($anosLetivosSearch) {
+            $anosLetivosQuery->where('nome', 'like', "%{$anosLetivosSearch}%");
+        }
+
         return Inertia::render('Gestao/Index', [
-            'concelhos'   => $concelhosQuery->get(['id', 'nome']),
-            'editoras'    => $editorasQuery->get(['id', 'nome']),
-            'disciplinas' => $disciplinasQuery->get(['id', 'nome']),
+            'concelhos'    => $concelhosQuery->get(['id', 'nome']),
+            'editoras'     => $editorasQuery->get(['id', 'nome']),
+            'disciplinas'  => $disciplinasQuery->get(['id', 'nome']),
+            'anosLetivos'  => $anosLetivosQuery->get(['id', 'nome', 'data_inicio', 'data_fim']),
             'initial' => [
                 'concelhos_search'   => $concelhosSearch,
                 'editoras_search'    => $editorasSearch,
                 'disciplinas_search' => $disciplinasSearch,
+                'anos_letivos_search' => $anosLetivosSearch,
             ],
         ]);
     }

@@ -48,6 +48,17 @@ export default function ReceiveOrderModal({ order, onClose }) {
     );
   };
 
+  const receiveAll = () => {
+    setData(
+      "lines",
+      data.lines.map((x) => {
+        const line = (order.lines || []).find((l) => l.id === x.line_id);
+        const pending = Math.max(0, (line?.qty_ordered || 0) - (line?.qty_received || 0));
+        return { ...x, receive_now: pending };
+      })
+    );
+  };
+
   return (
     <ModalShell title="Receber Livros da Encomenda" onClose={onClose} size="lg">
       <div className="text-sm text-gray-500">
@@ -129,14 +140,21 @@ export default function ReceiveOrderModal({ order, onClose }) {
           <button
             type="button"
             onClick={onClose}
-            className="px-4 py-2.5 rounded-xl border border-gray-200 bg-white hover:bg-gray-50 text-gray-800 font-bold text-sm"
+            className="px-4 py-2.5 rounded-xl border border-gray-200 bg-gray-50 hover:bg-gray-100 text-gray-700 font-bold text-sm"
           >
             Cancelar
           </button>
           <button
+            type="button"
+            onClick={receiveAll}
+            className="px-4 py-2.5 rounded-xl border border-indigo-200 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold text-sm"
+          >
+            Receber Tudo
+          </button>
+          <button
             type="submit"
             disabled={processing}
-            className="px-4 py-2.5 rounded-xl bg-black hover:bg-gray-800 text-white font-bold text-sm inline-flex items-center gap-2"
+            className="px-4 py-2.5 rounded-xl border border-gray-900 bg-gray-900 hover:bg-gray-800 text-white font-bold text-sm inline-flex items-center gap-2"
           >
             <FaCheckCircle />
             Confirmar Recebimento
