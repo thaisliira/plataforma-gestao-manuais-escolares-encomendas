@@ -148,6 +148,15 @@ public function store(Request $request)
 
     \Log::info('Lista criada/atualizada:', ['lista_id' => $lista->id]);
 
+    // Se o ano de origem for diferente do destino, apagar a lista antiga
+    if ($request->filled('source_ano_letivo_id') && $request->source_ano_letivo_id != $request->ano_letivo_id) {
+        ListaLivro::where('escola_id', $request->escola_id)
+            ->where('ano_letivo_id', $request->source_ano_letivo_id)
+            ->where('ano_escolar_id', $request->ano_escolar_id)
+            ->delete();
+        \Log::info('Lista do ano anterior apagada:', ['source_ano_letivo_id' => $request->source_ano_letivo_id]);
+    }
+
     $lista->itens()->delete();
 
     \Log::info('Itens antigos deletados');
