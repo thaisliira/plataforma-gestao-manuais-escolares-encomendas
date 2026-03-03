@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\AnoLetivo;
+use App\Models\Livro;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 
@@ -42,6 +43,9 @@ class AnosLetivosController extends Controller
             'data_fim'    => $latest->data_fim->addYear(),
         ]);
 
+        Livro::where('status_alerta', 1)->update(['status_alerta' => 2]);
+        Livro::where('status_alerta', 0)->update(['status_alerta' => 1]);
+
         return redirect()->back()->with('success', "Ano letivo {$nome} criado com sucesso.");
     }
 
@@ -54,6 +58,9 @@ class AnosLetivosController extends Controller
         ]);
 
         AnoLetivo::create($data);
+
+        Livro::where('status_alerta', 1)->update(['status_alerta' => 2]);
+        Livro::where('status_alerta', 0)->update(['status_alerta' => 1]);
 
         return redirect()->back()->with('success', 'Ano letivo criado com sucesso.');
     }
