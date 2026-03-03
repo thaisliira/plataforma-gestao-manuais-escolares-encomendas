@@ -249,10 +249,13 @@ class OrderController extends Controller
                 ];
             });
 
+        $anoLetivoAtual = AnoLetivo::orderBy('id', 'desc')->first(['id', 'nome']);
+
         return Inertia::render('Orders/Create', [
             'schools' => $schools,
             'concelhos' => $concelhos,
             'anos_escolares' => $anos_escolares,
+            'ano_letivo_atual' => $anoLetivoAtual,
         ]);
     }
 
@@ -324,8 +327,8 @@ class OrderController extends Controller
         $debug['escola_id'] = $escolaId;
         $debug['ano_escolar_id'] = $anoEscolarId;
 
-        // Buscar ano letivo atual (assumindo o mais recente)
-        $anoLetivo = AnoLetivo::orderBy('data_inicio', 'desc')->first();
+        // Buscar ano letivo atual (último adicionado)
+        $anoLetivo = AnoLetivo::orderBy('id', 'desc')->first();
 
         if (!$anoLetivo) {
             return response()->json([

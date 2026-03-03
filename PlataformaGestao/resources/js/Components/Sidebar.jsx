@@ -44,6 +44,30 @@ export default function Sidebar({ user }) {
       icon: <FaBox className="w-5 h-5" />,
       disabled: false,
     },
+
+
+        {
+      section: "Listas",
+    },
+    {
+      label: "Gerir Listas de Livros",
+      href: route('manuais.index'),
+      active: isActive(currentPath, "/manuais-list"),
+      icon: <FaListAlt className="w-5 h-5" />,
+      disabled: false,
+    },
+
+       {
+      section: "Stock",
+      },
+      {
+          label: "Stock",
+          href: route('stock.index'), 
+          active: isActive(currentPath, "/stock"),
+          icon: <FaWarehouse className="w-5 h-5" />,
+          disabled: false,
+      },
+
     
     {
       section: "Alunos",
@@ -78,31 +102,7 @@ export default function Sidebar({ user }) {
       active: isActive(currentPath, "/escolas"),
       icon: <FaSchool className="w-5 h-5" />,
       disabled: false,
-    },
-
-    
-    {
-      section: "Listas",
-    },
-    {
-      label: "Gerir Listas de Livros",
-      href: route('manuais.index'),
-      active: isActive(currentPath, "/manuais-list"),
-      icon: <FaListAlt className="w-5 h-5" />,
-      disabled: false,
-    },
-
-    
-    {
-      section: "Stock",
-      },
-      {
-          label: "Stock",
-          href: route('stock.index'), 
-          active: isActive(currentPath, "/stock"),
-          icon: <FaWarehouse className="w-5 h-5" />,
-          disabled: false,
-      },
+    }, 
 
       {
       section: "Gestão",

@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { Head, Link } from '@inertiajs/react';
 import {
@@ -5,7 +6,7 @@ import {
     FaCheckCircle, FaExclamationTriangle, FaTruck, FaClipboardList, FaThLarge, FaArrowRight
 } from "react-icons/fa";
 
-export default function Dashboard({ auth, stats = {} }) {
+export default function Dashboard({ auth, stats = {}, anosLetivos = [], encapadosPorAno = {} }) {
 
     const customerStats = [
         { label: 'Aguarda Livros',       value: stats.aguardaLivros       ?? 0, icon: <FaExclamationTriangle />, color: 'border-red-500 text-red-600',       btnColor: 'bg-red-600',    href: route("orders.clientes.index", { status: 'AGUARDA_LIVROS',       sort: 'asc' }) },
@@ -61,7 +62,13 @@ export default function Dashboard({ auth, stats = {} }) {
                         </div>
                     </section>
 
-                    {/* 5. CARDS DE GESTÃO */}
+                    {/* 5. ESTATÍSTICAS */}
+                    <section className="space-y-4">
+                        <h3 className="text-xs font-bold text-gray-400 uppercase tracking-widest">Estatísticas</h3>
+                        <EncapadosCard anosLetivos={anosLetivos} encapadosPorAno={encapadosPorAno} />
+                    </section>
+
+                    {/* 6. CARDS DE GESTÃO */}
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                         <FeatureCard title="Listas de Manuais" desc="Gerir listas de livros por escola e ano letivo" icon={<FaBook className="text-blue-500" />} href={route("manuais.index")} />
                         <FeatureCard title="Encomendas" desc="Ver e gerir todas as encomendas de alunos" icon={<FaPlus className="text-indigo-500" />} href={route("orders.clientes.index")} />
@@ -125,6 +132,41 @@ function StatCard({ stat }) {
                 >
                     Ver Detalhes <FaArrowRight className="w-3 h-3"/>
                 </Link>
+            </div>
+        </div>
+    );
+}
+
+function EncapadosCard({ anosLetivos, encapadosPorAno }) {
+    const [selectedAno, setSelectedAno] = useState(anosLetivos[0]?.id ?? '');
+    const total = encapadosPorAno[selectedAno] ?? 0;
+
+    return (
+        <div className="card-3d animate-card-in relative overflow-hidden p-6 rounded-2xl border-l-4 border-teal-500 text-teal-600 flex flex-col items-start gap-4">
+            <div className="absolute -right-4 -bottom-4 opacity-10 text-8xl transform rotate-12">
+                <FaBook />
+            </div>
+
+            <div className="relative z-10 w-full">
+                <div className="flex items-center gap-2 opacity-80 mb-3">
+                    <span className="text-sm"><FaBook /></span>
+                    <span className="text-[10px] font-bold uppercase tracking-wider">Livros Encapados por Ano Letivo</span>
+                </div>
+
+                <select
+                    value={selectedAno}
+                    onChange={e => setSelectedAno(Number(e.target.value))}
+                    className="w-full mb-4 py-1.5 px-3 rounded-xl text-[11px] font-semibold border border-teal-200 bg-white text-gray-700 focus:outline-none focus:ring-2 focus:ring-teal-300"
+                >
+                    {anosLetivos.length === 0
+                        ? <option value="">Sem anos letivos</option>
+                        : anosLetivos.map(ano => (
+                            <option key={ano.id} value={ano.id}>{ano.nome}</option>
+                        ))
+                    }
+                </select>
+
+                <span className="text-5xl font-bold block">{total}</span>
             </div>
         </div>
     );

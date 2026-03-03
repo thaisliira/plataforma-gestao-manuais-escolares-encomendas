@@ -22,11 +22,31 @@ export default function OrderDetailsModal({ order: initialOrder, onClose, onSave
     const [swapResults, setSwapResults] = useState([]);
     const [swapLoading, setSwapLoading] = useState(false);
 
+    // Valores iniciais de ensacado — usados para reverter ao fechar via "X"
+    const [initialEnsacadoValues, setInitialEnsacadoValues] = useState(() => {
+        const map = {};
+        initialOrder.items.forEach(item => { map[item.id] = item.ensacado; });
+        return map;
+    });
+
+    // Fechar via "X": reverter alterações de ensacado (e respetivo stock) não guardadas
     const closeModal = () => {
         setModalClosing(true);
-        setTimeout(() => {
-            onClose();
-        }, 200);
+        const itemsToRevert = order.items.filter(item => {
+            const initial = initialEnsacadoValues[item.id] ?? false;
+            return item.ensacado !== initial;
+        });
+        if (itemsToRevert.length > 0) {
+            Promise.all(
+                itemsToRevert.map(item =>
+                    axios.patch(`/api/orders/${order.id}/items/${item.id}`, {
+                        field: 'ensacado',
+                        value: initialEnsacadoValues[item.id] ?? false,
+                    })
+                )
+            ).catch(console.error);
+        }
+        setTimeout(() => { onClose(); }, 200);
     };
 
     const saveModal = () => {
@@ -57,7 +77,16 @@ export default function OrderDetailsModal({ order: initialOrder, onClose, onSave
         try {
             const response = await axios.post(`/api/orders/${initialOrder.id}/normalize-items`);
             if (response.data.success) {
-                setOrder(prev => ({ ...prev, items: response.data.items }));
+                const normalizedItems = response.data.items;
+                setOrder(prev => ({ ...prev, items: normalizedItems }));
+                // Actualizar baseline de ensacado com os itens normalizados
+                setInitialEnsacadoValues(prev => {
+                    const map = { ...prev };
+                    normalizedItems.forEach(item => {
+                        if (!(item.id in map)) map[item.id] = item.ensacado;
+                    });
+                    return map;
+                });
             }
         } catch (error) {
             console.error('Erro ao normalizar itens:', error);
@@ -119,24 +148,63 @@ export default function OrderDetailsModal({ order: initialOrder, onClose, onSave
 
     // Ação em massa com toggle: se todos já marcados → desmarcar, senão → marcar
     const handleBulkAction = async (field) => {
-        const relevantItems = field === 'encapado'
-            ? order.items.filter(item => item.encapar)
-            : order.items;
+        // Candidatos base respeitando workflow e pré-condições
+        const relevantItems = order.items.filter(item => {
+            if (field === 'encapado') return item.encapar && item.ensacado;
+            if (field === 'entregue') return item.ensacado && (!item.encapar || item.encapado);
+            return true; // ensacado
+        });
 
         if (relevantItems.length === 0) return;
 
         const allMarked = relevantItems.every(item => item[field]);
         const targetValue = !allMarked;
 
-        const itemsToUpdate = relevantItems.filter(item => item[field] !== targetValue);
+        let itemsToUpdate;
+        if (field === 'ensacado' && targetValue) {
+            // Rastrear stock por livro: consumir 1 unidade por item ensacado
+            // Evita sobre-ensacar quando o mesmo livro aparece várias vezes
+            const stockCounter = {};
+            for (const item of order.items) {
+                if (item.livro_id !== undefined && !(item.livro_id in stockCounter)) {
+                    stockCounter[item.livro_id] = item.stock_disponivel ?? 0;
+                }
+            }
+            itemsToUpdate = relevantItems.filter(item => {
+                if (item.ensacado) return false;
+                const available = stockCounter[item.livro_id] ?? 0;
+                if (available > 0) {
+                    stockCounter[item.livro_id] = available - 1;
+                    return true;
+                }
+                return false;
+            });
+        } else {
+            itemsToUpdate = relevantItems.filter(item => item[field] !== targetValue);
+        }
+
         if (itemsToUpdate.length === 0) return;
+
+        const updateSet = new Set(itemsToUpdate.map(i => i.id));
+
+        // Calcular quantos itens de cada livro vão ser ensacados (para atualizar stock dos restantes)
+        const ensackedPerLivro = {};
+        if (field === 'ensacado' && targetValue) {
+            itemsToUpdate.forEach(item => {
+                ensackedPerLivro[item.livro_id] = (ensackedPerLivro[item.livro_id] || 0) + 1;
+            });
+        }
 
         setBulkLoading(true);
         setOrder(prev => ({
             ...prev,
             items: prev.items.map(item => {
-                if (field === 'encapado' && !item.encapar) return item;
-                return { ...item, [field]: targetValue };
+                if (updateSet.has(item.id)) return { ...item, [field]: targetValue };
+                // Atualizar stock_disponivel nos itens não ensacados do mesmo livro
+                if (field === 'ensacado' && targetValue && !item.ensacado && ensackedPerLivro[item.livro_id]) {
+                    return { ...item, stock_disponivel: Math.max(0, (item.stock_disponivel ?? 0) - ensackedPerLivro[item.livro_id]) };
+                }
+                return item;
             })
         }));
         try {

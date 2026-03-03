@@ -8,7 +8,7 @@ import {
 } from 'react-icons/fa';
 import axios from 'axios';
 
-export default function CreateOrder({ auth, schools, concelhos, anos_escolares }) {
+export default function CreateOrder({ auth, schools, concelhos, anos_escolares, ano_letivo_atual }) {
     const [studentLoading, setStudentLoading] = useState(false);
     const [studentStatus, setStudentStatus] = useState(null); // 'found' | 'new' | null
     const [idMegaConflict, setIdMegaConflict] = useState(null); // { nome, nif }
@@ -28,7 +28,7 @@ export default function CreateOrder({ auth, schools, concelhos, anos_escolares }
 
     const { data, setData, post, processing, errors, transform } = useForm({
         nif: '', id_mega: '', nome: '', telefone: '', email: '',
-        escola_id: '', ano_escolar_id: '', ano_letivo_id: 1, observacao: '', items: []
+        escola_id: '', ano_escolar_id: '', ano_letivo_id: ano_letivo_atual?.id ?? '', observacao: '', items: []
     });
 
     const filteredSchools = selectedConcelho
