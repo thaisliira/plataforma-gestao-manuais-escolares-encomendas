@@ -39,11 +39,8 @@ class ManuaisController extends Controller
         ] : null,
     ]);
 
-        // Buscar o ano letivo vigente (atual)
-        $anoLetivoVigente = AnoLetivo::whereDate('data_inicio', '<=', now())
-            ->whereDate('data_fim', '>=', now())
-            ->first();
-
+        // Buscar o ano letivo vigente (atual) ou, em alternativa, o último existente
+        $anoLetivoMaisRecente = AnoLetivo::orderByDesc('id')->first();
         // Renderizar a página com os dados iniciais dos filtros
         return Inertia::render('Manuais/Index', [
             'concelhos'         => Concelho::all(['id', 'nome']),
@@ -51,8 +48,7 @@ class ManuaisController extends Controller
             'anos_letivos'      => AnoLetivo::all(['id', 'nome']),
             'anos_escolares'    => AnoEscolar::select('id', 'name as nome')->get(),
             'disciplinas'       => Disciplina::orderBy('nome')->get(['id', 'nome']),
-            'ano_letivo_vigente_id' => $anoLetivoVigente?->id,
-            'catalog'           => $catalog,
+            'ano_letivo_vigente_id' => $anoLetivoMaisRecente?->id,'catalog' => $catalog,
             'filters'           => $request->only(['concelho', 'escola_id', 'ano_letivo_id', 'ano_escolar_id'])
         ]);
     }
@@ -66,6 +62,20 @@ class ManuaisController extends Controller
             ->where('ano_letivo_id', $request->ano_letivo_id)
             ->where('ano_escolar_id', $request->ano_escolar_id)
             ->first();
+
+        // Se não existir lista para o ano letivo pedido, tenta o ano letivo anterior
+        if (!$lista) {
+            $anoLetivoAnterior = AnoLetivo::where('id', '<', $request->ano_letivo_id)
+                ->orderByDesc('id')
+                ->first();
+
+            if ($anoLetivoAnterior) {
+                $lista = ListaLivro::where('escola_id', $request->escola_id)
+                    ->where('ano_letivo_id', $anoLetivoAnterior->id)
+                    ->where('ano_escolar_id', $request->ano_escolar_id)
+                    ->first();
+            }
+        }
 
         if ($lista) {
             $items = collect();
