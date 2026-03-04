@@ -140,13 +140,12 @@ export default function OrdersIndex({ auth, orders, stats, filters, filterOption
                             gradient="from-blue-400 to-indigo-500" 
                             shadow="shadow-blue-500/20" 
                         />
-                         {/* Exemplo estático */}
-                        <GlassStat 
-                            label="A Levantar" 
-                            value="12" 
-                            icon={FaBox} 
-                            gradient="from-purple-400 to-fuchsia-500" 
-                            shadow="shadow-purple-500/20" 
+                        <GlassStat
+                            label="A Levantar"
+                            value={stats.levantamento}
+                            icon={FaBox}
+                            gradient="from-purple-400 to-fuchsia-500"
+                            shadow="shadow-purple-500/20"
                         />
                         <GlassStat 
                             label="Concluídas" 

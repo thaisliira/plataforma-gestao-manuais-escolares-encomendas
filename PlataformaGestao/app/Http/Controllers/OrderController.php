@@ -118,13 +118,13 @@ class OrderController extends Controller
 
         // Calcular estatísticas reais
         $stats = [
-            'pendentes' => EncomendaAluno::where('status', 'AGUARDA_LIVROS')->count(),
+            'pendentes'    => EncomendaAluno::where('status', 'AGUARDA_LIVROS')->count(),
             'processamento' => EncomendaAluno::whereIn('status', [
                 'AGUARDA_ENSACAMENTO',
                 'AGUARDA_ENCAPAMENTO',
-                'AGUARDA_LEVANTAMENTO'
             ])->count(),
-            'concluidas' => EncomendaAluno::where('status', 'ENTREGUE')->count(),
+            'levantamento' => EncomendaAluno::where('status', 'AGUARDA_LEVANTAMENTO')->count(),
+            'concluidas'   => EncomendaAluno::where('status', 'ENTREGUE')->count(),
         ];
 
         // Dados para os dropdowns de filtros
