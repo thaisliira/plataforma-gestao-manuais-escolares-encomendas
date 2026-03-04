@@ -11,39 +11,29 @@ class EditoraSeeder extends Seeder
     {
         $editoras = [
             [
-                'nome' => 'Porto Editora',
-                'contacto_email' => 'encomendas@portoeditora.pt',
-                'contacto_telefone' => '222081700',
+                'nome'               => 'Porto Editora',
+                'contacto_email'     => 'encomendas@portoeditora.pt',
+                'contacto_telefone'  => '222081700',
             ],
             [
-                'nome' => 'Texto Editores',
-                'contacto_email' => 'encomendas@textoeditores.pt',
-                'contacto_telefone' => '214724500',
+                'nome'               => 'Texto Editores',
+                'contacto_email'     => 'encomendas@textoeditores.pt',
+                'contacto_telefone'  => '214724500',
             ],
             [
-                'nome' => 'Leya Educação',
-                'contacto_email' => 'educacao@leya.pt',
-                'contacto_telefone' => '214228800',
+                'nome'               => 'Leya Educação',
+                'contacto_email'     => 'educacao@leya.pt',
+                'contacto_telefone'  => '214228800',
             ],
             [
-                'nome' => 'Areal Editores',
-                'contacto_email' => 'areal@arealeditores.pt',
-                'contacto_telefone' => '226165230',
+                'nome'               => 'Areal Editores',
+                'contacto_email'     => 'areal@arealeditores.pt',
+                'contacto_telefone'  => '226165230',
             ],
             [
-                'nome' => 'Santillana',
-                'contacto_email' => 'geral@santillana.pt',
-                'contacto_telefone' => '213821400',
-            ],
-            [
-                'nome' => 'Raiz Editora',
-                'contacto_email' => 'info@raizeditora.pt',
-                'contacto_telefone' => '222081750',
-            ],
-            [
-                'nome' => 'ASA',
-                'contacto_email' => 'asa@asa.pt',
-                'contacto_telefone' => '226166990',
+                'nome'               => 'Santillana',
+                'contacto_email'     => 'geral@santillana.pt',
+                'contacto_telefone'  => '213821400',
             ],
         ];
 

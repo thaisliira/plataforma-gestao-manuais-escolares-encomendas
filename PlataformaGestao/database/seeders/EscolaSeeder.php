@@ -13,79 +13,70 @@ class EscolaSeeder extends Seeder
         $concelhos = Concelho::all()->pluck('id', 'nome');
 
         $escolas = [
-            // Lisboa
+            // Porto
             [
-                'nome' => 'Escola Básica D. Pedro V',
-                'codigo' => 'EB-DPV',
-                'concelho_id' => $concelhos['Lisboa'],
-                'isAtivo' => true,
+                'nome'        => 'Escola Básica João de Deus',
+                'codigo'      => 'EB-JD',
+                'concelho_id' => $concelhos['Porto'],
+                'isAtivo'     => true,
             ],
             [
-                'nome' => 'Escola Secundária Camões',
-                'codigo' => 'ES-CAM',
-                'concelho_id' => $concelhos['Lisboa'],
-                'isAtivo' => true,
+                'nome'        => 'Escola Secundária Rodrigues de Freitas',
+                'codigo'      => 'ES-RF',
+                'concelho_id' => $concelhos['Porto'],
+                'isAtivo'     => true,
             ],
-            // Sintra
+            // Vila Nova de Gaia
             [
-                'nome' => 'Escola Básica de Sintra',
-                'codigo' => 'EB-SNT',
-                'concelho_id' => $concelhos['Sintra'],
-                'isAtivo' => true,
-            ],
-            [
-                'nome' => 'Escola Secundária Ferreira Dias',
-                'codigo' => 'ES-FD',
-                'concelho_id' => $concelhos['Sintra'],
-                'isAtivo' => true,
-            ],
-            // Cascais
-            [
-                'nome' => 'Escola Básica de Cascais',
-                'codigo' => 'EB-CAS',
-                'concelho_id' => $concelhos['Cascais'],
-                'isAtivo' => true,
+                'nome'        => 'Escola Básica de Gaia',
+                'codigo'      => 'EB-GAI',
+                'concelho_id' => $concelhos['Vila Nova de Gaia'],
+                'isAtivo'     => true,
             ],
             [
-                'nome' => 'Escola Secundária de Cascais',
-                'codigo' => 'ES-CAS',
-                'concelho_id' => $concelhos['Cascais'],
-                'isAtivo' => true,
+                'nome'        => 'Escola Secundária de Gaia',
+                'codigo'      => 'ES-GAI',
+                'concelho_id' => $concelhos['Vila Nova de Gaia'],
+                'isAtivo'     => true,
             ],
-            // Oeiras
+            // Matosinhos
             [
-                'nome' => 'Escola Básica Sophia de Mello Breyner',
-                'codigo' => 'EB-SMB',
-                'concelho_id' => $concelhos['Oeiras'],
-                'isAtivo' => true,
+                'nome'        => 'Escola Básica de Matosinhos',
+                'codigo'      => 'EB-MAT',
+                'concelho_id' => $concelhos['Matosinhos'],
+                'isAtivo'     => true,
             ],
-            // Amadora
             [
-                'nome' => 'Escola Secundária da Amadora',
-                'codigo' => 'ES-AMD',
-                'concelho_id' => $concelhos['Amadora'],
-                'isAtivo' => true,
+                'nome'        => 'Escola Secundária de Matosinhos',
+                'codigo'      => 'ES-MAT',
+                'concelho_id' => $concelhos['Matosinhos'],
+                'isAtivo'     => true,
             ],
-            // Loures
+            // Maia
             [
-                'nome' => 'Escola Básica de Loures',
-                'codigo' => 'EB-LRS',
-                'concelho_id' => $concelhos['Loures'],
-                'isAtivo' => true,
+                'nome'        => 'Escola Básica da Maia',
+                'codigo'      => 'EB-MAI',
+                'concelho_id' => $concelhos['Maia'],
+                'isAtivo'     => true,
             ],
-            // Almada
             [
-                'nome' => 'Escola Secundária Fernão Mendes Pinto',
-                'codigo' => 'ES-FMP',
-                'concelho_id' => $concelhos['Almada'],
-                'isAtivo' => true,
+                'nome'        => 'Escola Secundária da Maia',
+                'codigo'      => 'ES-MAI',
+                'concelho_id' => $concelhos['Maia'],
+                'isAtivo'     => true,
             ],
-            // Escola inativa para teste
+            // Gondomar
             [
-                'nome' => 'Escola Básica Antiga (Desativada)',
-                'codigo' => 'EB-ANT',
-                'concelho_id' => $concelhos['Lisboa'],
-                'isAtivo' => false,
+                'nome'        => 'Escola Básica de Gondomar',
+                'codigo'      => 'EB-GON',
+                'concelho_id' => $concelhos['Gondomar'],
+                'isAtivo'     => true,
+            ],
+            [
+                'nome'        => 'Escola Secundária de Gondomar',
+                'codigo'      => 'ES-GON',
+                'concelho_id' => $concelhos['Gondomar'],
+                'isAtivo'     => true,
             ],
         ];
 

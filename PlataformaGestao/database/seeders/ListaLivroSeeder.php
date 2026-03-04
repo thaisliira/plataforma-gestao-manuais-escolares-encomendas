@@ -8,71 +8,84 @@ use App\Models\Escola;
 use App\Models\AnoLetivo;
 use App\Models\AnoEscolar;
 use App\Models\Livro;
-use Carbon\Carbon;
 use Illuminate\Database\Seeder;
-use Illuminate\Support\Facades\DB;
 
 class ListaLivroSeeder extends Seeder
 {
     public function run(): void
     {
-        $escolas       = Escola::all()->pluck('id', 'nome');
-        $anoLetivo2324 = AnoLetivo::where('nome', '2023/2024')->first();
-        $anoLetivo2425 = AnoLetivo::where('nome', '2024/2025')->first();
-        $anoLetivo2526 = AnoLetivo::where('nome', '2025/2026')->first();
+        $anoLetivo = AnoLetivo::where('nome', '2025/2026')->first();
 
-        if (!$anoLetivo2324 || !$anoLetivo2425 || !$anoLetivo2526 || $escolas->isEmpty()) {
+        if (! $anoLetivo) {
             return;
         }
 
-        // Grupos de listas com datas de atualização diferentes
-        // Cada entrada: [anoLetivo, anoEscolar (nome), nome da escola, updatedAt]
-        $grupos = [
-            // ── 5 anos atrás ─────────────────────────────────────────────────
-            [$anoLetivo2324, '1º Ano', 'Escola Básica D. Pedro V',         Carbon::now()->subYears(5)],
-            [$anoLetivo2324, '2º Ano', 'Escola Básica D. Pedro V',         Carbon::now()->subYears(5)],
-            [$anoLetivo2324, '5º Ano', 'Escola Secundária Camões',         Carbon::now()->subYears(5)],
-            [$anoLetivo2324, '9º Ano', 'Escola Secundária Camões',         Carbon::now()->subYears(5)],
+        $escolas = Escola::where('isAtivo', true)->get()->keyBy('nome');
 
-            // ── 2 anos atrás ─────────────────────────────────────────────────
-            [$anoLetivo2324, '1º Ano', 'Escola Básica de Sintra',          Carbon::now()->subYears(2)],
-            [$anoLetivo2324, '3º Ano', 'Escola Básica de Sintra',          Carbon::now()->subYears(2)],
-            [$anoLetivo2324, '6º Ano', 'Escola Secundária Ferreira Dias',  Carbon::now()->subYears(2)],
-            [$anoLetivo2324, '7º Ano', 'Escola Secundária Ferreira Dias',  Carbon::now()->subYears(2)],
-
-            // ── 1 ano atrás ──────────────────────────────────────────────────
-            [$anoLetivo2425, '1º Ano',  'Escola Básica de Cascais',        Carbon::now()->subYear()],
-            [$anoLetivo2425, '2º Ano',  'Escola Básica de Cascais',        Carbon::now()->subYear()],
-            [$anoLetivo2425, '5º Ano',  'Escola Básica D. Pedro V',        Carbon::now()->subYear()],
-            [$anoLetivo2425, '8º Ano',  'Escola Secundária Camões',        Carbon::now()->subYear()],
-            [$anoLetivo2526, '9º Ano',  'Escola Básica de Sintra',         Carbon::now()->subYear()],
-            [$anoLetivo2526, '10º Ano', 'Escola Secundária Ferreira Dias', Carbon::now()->subYear()],
+        // Escolas Básicas: cobrem 1º–6º Ano
+        $escolasBasicas = [
+            'Escola Básica João de Deus',
+            'Escola Básica de Gaia',
+            'Escola Básica de Matosinhos',
+            'Escola Básica da Maia',
+            'Escola Básica de Gondomar',
         ];
+        $anosEB = ['1º Ano', '2º Ano', '3º Ano', '4º Ano', '5º Ano', '6º Ano'];
 
-        foreach ($grupos as [$anoLetivo, $anoEscolarNome, $escolaNome, $updatedAt]) {
-            $escolaId   = $escolas[$escolaNome] ?? null;
-            $anoEscolar = AnoEscolar::where('name', $anoEscolarNome)->first();
+        // Escolas Secundárias: cobrem 7º–12º Ano
+        $escolasSecundarias = [
+            'Escola Secundária Rodrigues de Freitas',
+            'Escola Secundária de Gaia',
+            'Escola Secundária de Matosinhos',
+            'Escola Secundária da Maia',
+            'Escola Secundária de Gondomar',
+        ];
+        $anosES = ['7º Ano', '8º Ano', '9º Ano', '10º Ano', '11º Ano', '12º Ano'];
 
-            if (!$escolaId || !$anoEscolar) {
+        foreach ($escolasBasicas as $escolaNome) {
+            $escola = $escolas[$escolaNome] ?? null;
+            if (! $escola) {
                 continue;
             }
+            foreach ($anosEB as $anoNome) {
+                $anoEscolar = AnoEscolar::where('name', $anoNome)->first();
+                if (! $anoEscolar) {
+                    continue;
+                }
+                $lista = ListaLivro::create([
+                    'escola_id'      => $escola->id,
+                    'ano_letivo_id'  => $anoLetivo->id,
+                    'ano_escolar_id' => $anoEscolar->id,
+                ]);
+                $this->criarItens($lista, $anoEscolar->id);
+            }
+        }
 
-            $lista = ListaLivro::create([
-                'escola_id'      => $escolaId,
-                'ano_letivo_id'  => $anoLetivo->id,
-                'ano_escolar_id' => $anoEscolar->id,
-            ]);
-
-            // Forçar data de atualização pretendida (bypass do timestamp automático)
-            DB::table('listas_livros')->where('id', $lista->id)->update([
-                'created_at' => $updatedAt,
-                'updated_at' => $updatedAt,
-            ]);
-
-            $this->criarItens($lista, $anoEscolar->id);
+        foreach ($escolasSecundarias as $escolaNome) {
+            $escola = $escolas[$escolaNome] ?? null;
+            if (! $escola) {
+                continue;
+            }
+            foreach ($anosES as $anoNome) {
+                $anoEscolar = AnoEscolar::where('name', $anoNome)->first();
+                if (! $anoEscolar) {
+                    continue;
+                }
+                $lista = ListaLivro::create([
+                    'escola_id'      => $escola->id,
+                    'ano_letivo_id'  => $anoLetivo->id,
+                    'ano_escolar_id' => $anoEscolar->id,
+                ]);
+                $this->criarItens($lista, $anoEscolar->id);
+            }
         }
     }
 
+    /**
+     * Cria os itens da lista, escolhendo um manual por disciplina.
+     * O índice usa escola_id para garantir que escolas diferentes escolhem
+     * editoras diferentes para o mesmo ano/disciplina.
+     */
     private function criarItens(ListaLivro $lista, int $anoEscolarId): void
     {
         $livros = Livro::where('ano_escolar_id', $anoEscolarId)
@@ -84,12 +97,20 @@ class ListaLivroSeeder extends Seeder
         }
 
         foreach ($livros->groupBy('disciplina_id') as $disciplinaId => $livrosDisciplina) {
-            $manual  = $livrosDisciplina->where('tipo', 'MANUAL')->first();
-            $caderno = $livrosDisciplina->where('tipo', 'CADERNO_ATIVIDADES')->first();
+            $manuais  = $livrosDisciplina->where('tipo', 'MANUAL')->values();
+            $cadernos = $livrosDisciplina->where('tipo', 'CADERNO_ATIVIDADES')->values();
 
-            if (!$manual && !$caderno) {
+            if ($manuais->isEmpty() && $cadernos->isEmpty()) {
                 continue;
             }
+
+            $manual  = $manuais->isNotEmpty()
+                ? $manuais->get($lista->escola_id % $manuais->count())
+                : null;
+
+            $caderno = $cadernos->isNotEmpty()
+                ? $cadernos->get($lista->escola_id % $cadernos->count())
+                : null;
 
             ListaLivroItem::create([
                 'lista_id'         => $lista->id,

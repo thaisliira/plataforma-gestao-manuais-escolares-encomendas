@@ -44,6 +44,9 @@ class EncomendaLivroAlunoItemSeeder extends Seeder
             }
 
             $this->garantirMinimoDeLivros($encomenda, 2);
+
+            // Recalcular o status com base nos itens criados e no stock existente
+            $encomenda->refresh()->recalculateStatus();
         }
     }
 

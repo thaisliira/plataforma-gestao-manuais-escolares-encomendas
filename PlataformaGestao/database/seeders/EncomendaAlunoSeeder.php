@@ -14,40 +14,40 @@ class EncomendaAlunoSeeder extends Seeder
 {
     public function run(): void
     {
-        $alunos = Aluno::all();
-        $anoLetivoAtual = AnoLetivo::where('nome', '2024/2025')->first();
-        $escolas = Escola::where('isAtivo', true)->get();
+        $anoLetivo = AnoLetivo::where('nome', '2025/2026')->first();
+        $alunos    = Aluno::orderBy('id')->get();
 
-        $observacoes = [
-            null,
-            'Cliente solicita urgência',
-            'Livros para irmãos',
-            'Aguardar contacto telefónico',
-            'Encapar todos os livros',
+        // Cada aluno → [escola, ano escolar, observação]
+        $dados = [
+            ['Escola Básica João de Deus',             '5º Ano',  null],
+            ['Escola Secundária Rodrigues de Freitas', '7º Ano',  'Cliente solicita urgência'],
+            ['Escola Secundária de Matosinhos',        '9º Ano',  'Encapar todos os livros'],
+            ['Escola Básica da Maia',                  '1º Ano',  null],
+            ['Escola Secundária de Gondomar',          '11º Ano', 'Aguardar contacto telefónico'],
         ];
 
         foreach ($alunos as $index => $aluno) {
-            // Escolher uma escola e ano escolar aleatório
-            $escola = $escolas->random();
-            $anoEscolar = AnoEscolar::inRandomOrder()->first();
+            [$escolaNome, $anoEscolarNome, $observacao] = $dados[$index];
 
-            // Tentar encontrar uma lista para essa combinação
+            $escola     = Escola::where('nome', $escolaNome)->first();
+            $anoEscolar = AnoEscolar::where('name', $anoEscolarNome)->first();
+
             $lista = ListaLivro::where('escola_id', $escola->id)
-                ->where('ano_letivo_id', $anoLetivoAtual->id)
+                ->where('ano_letivo_id', $anoLetivo->id)
                 ->where('ano_escolar_id', $anoEscolar->id)
                 ->first();
 
             EncomendaAluno::create([
-                'aluno_id' => $aluno->id,
-                'nif' => $aluno->nif,
-                'id_mega' => $aluno->id_mega,
-                'nome' => $aluno->nome,
-                'telefone' => $aluno->telefone,
-                'escola_id' => $escola->id,
-                'ano_letivo_id' => $anoLetivoAtual->id,
+                'aluno_id'       => $aluno->id,
+                'nif'            => $aluno->nif,
+                'id_mega'        => $aluno->id_mega,
+                'nome'           => $aluno->nome,
+                'telefone'       => $aluno->telefone,
+                'escola_id'      => $escola->id,
+                'ano_letivo_id'  => $anoLetivo->id,
                 'ano_escolar_id' => $anoEscolar->id,
-                'lista_id' => $lista?->id,
-                'observacao' => $observacoes[array_rand($observacoes)],
+                'lista_id'       => $lista?->id,
+                'observacao'     => $observacao,
             ]);
         }
     }
