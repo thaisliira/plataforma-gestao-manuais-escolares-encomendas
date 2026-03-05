@@ -193,9 +193,9 @@ public function store(Request $request)
                 ];
             }
 
-            if ($livro->tipo === 'MANUAL') {
+            if (strtolower($livro->tipo) === 'manual') {
                 $porDisciplina[$discId]['manual_livro_id'] = $livro->id;
-            } elseif ($livro->tipo === 'CADERNO_ATIVIDADES') {
+            } elseif (strtolower($livro->tipo) === 'caderno_atividades') {
                 $porDisciplina[$discId]['caderno_livro_id'] = $livro->id;
             }
         }
